@@ -1,3 +1,28 @@
+# SPDX-License-Identifier: BSD-2-Clause
+#
+# Copyright (c) 2026 Renux contributors.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
 
 # Part of a unified Makefile for building kernels.  This part includes all
 # the definitions that need to be after all the % directives except %RULES
@@ -260,9 +285,9 @@ genoffset_test.o: $S/kern/genoffset.c offset.inc
 assym.inc: $S/kern/genassym.sh genassym.o genoffset_test.o
 	NM='${NM}' NMFLAGS='${NMFLAGS}' sh $S/kern/genassym.sh genassym.o > ${.TARGET}
 
-genassym.o: $S/$M/$M/genassym.c  offset.inc
+genassym.o: ${MACHINE_SRCDIR}/${M}/genassym.c  offset.inc
 	${CC} -c ${NOSAN_CFLAGS:N-flto*:N-fno-common} \
-	    -fcommon $S/$M/$M/genassym.c
+	    -fcommon ${MACHINE_SRCDIR}/${M}/genassym.c
 
 OBJS_DEPEND_GUESS+= opt_global.h
 genoffset.o genassym.o vers.o: opt_global.h
@@ -387,12 +412,19 @@ PREFIX_OBJDIR=${.OBJDIR}
 
 # Ensure that the link exists without depending on it when it exists.
 # Ensure that debug info references the path in the source tree.
+.if exists(${SYSDIR}/arch/${MACHINE})
+_ARCHDIR=	arch
+.else
+_ARCHDIR=
+.endif
 .for _link in ${_ILINKS}
 .if !exists(${.OBJDIR}/${_link})
 ${SRCS} ${DEPENDOBJS}: ${_link}
 .endif
 .if ${_link} == "machine"
-CFLAGS+= -fdebug-prefix-map=./machine=${PREFIX_SYSDIR}/${MACHINE}/include
+CFLAGS+= -fdebug-prefix-map=./machine=${PREFIX_SYSDIR}/${_ARCHDIR}/${MACHINE}/include
+.elif ${_link} == ${MACHINE}
+CFLAGS+= -fdebug-prefix-map=./${_link}=${PREFIX_SYSDIR}/${_ARCHDIR}/${_link}/include
 .else
 CFLAGS+= -fdebug-prefix-map=./${_link}=${PREFIX_SYSDIR}/${_link}/include
 .endif
@@ -409,10 +441,15 @@ GDB_FILES= acttrace.py \
 ${_ILINKS}:
 	@case ${.TARGET} in \
 	machine) \
-		path=${S}/${MACHINE}/include ;; \
+		m=${MACHINE} ;; \
 	*) \
-		path=${S}/${.TARGET}/include ;; \
+		m=${.TARGET} ;; \
 	esac ; \
+	if [ -d ${S}/arch/$$m ] ; then \
+		path=${S}/arch/$$m/include ; \
+	else \
+		path=${S}/$$m/include ; \
+	fi ; \
 	${ECHO} ${.TARGET} "->" $$path ; \
 	ln -fns $$path ${.TARGET}
 

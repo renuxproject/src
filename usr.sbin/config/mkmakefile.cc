@@ -1,4 +1,31 @@
 /*-
+ * SPDX-License-Identifier: BSD-2-Clause
+ *
+ * Copyright (c) 2026 Renux contributors.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+
+/*-
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * Copyright (c) 1980, 1990, 1993
@@ -115,7 +142,7 @@ open_makefile_template(void)
 	FILE *ifp;
 	char line[BUFSIZ];
 
-	snprintf(line, sizeof(line), "../../conf/Makefile.%s", machinename);
+	snprintf(line, sizeof(line), "%sconf/Makefile.%s", updir, machinename);
 	ifp = fopen(line, "r");
 	if (ifp == NULL) {
 		snprintf(line, sizeof(line), "Makefile.%s", machinename);
@@ -433,8 +460,8 @@ next:
 		wd = get_quoted_word(fp);
 		if (wd.eof() || wd.eol())
 			errout("%s: missing include filename.\n", fname);
-		(void) snprintf(ifname, sizeof(ifname), "../../%s",
-		    wd->c_str());
+		(void) snprintf(ifname, sizeof(ifname), "%s%s",
+		    updir, wd->c_str());
 		read_file(ifname);
 		while (!(wd = get_word(fp)).eof() && !wd.eol())
 			;
@@ -621,10 +648,10 @@ read_files(void)
 	char fname[MAXPATHLEN];
 	struct files_name *nl, *tnl;
 	
-	(void) snprintf(fname, sizeof(fname), "../../conf/files");
+	(void) snprintf(fname, sizeof(fname), "%sconf/files", updir);
 	read_file(fname);
 	(void) snprintf(fname, sizeof(fname),
-		       	"../../conf/files.%s", machinename);
+		       	"%sconf/files.%s", updir, machinename);
 	read_file(fname);
 	for (nl = STAILQ_FIRST(&fntab); nl != NULL; nl = tnl) {
 		read_file(nl->f_name);

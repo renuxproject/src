@@ -1,4 +1,35 @@
+# SPDX-License-Identifier: BSD-2-Clause
+#
+# Copyright (c) 2026 Renux contributors.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
 .include <kmod.opts.mk>
+
+.if exists(${SRCTOP}/sys/arch/${MACHINE})
+MACHINE_SRC=	${SRCTOP}/sys/arch/${MACHINE}
+.else
+MACHINE_SRC=	${SRCTOP}/sys/${MACHINE}
+.endif
 
 KMOD=	vmm
 
@@ -8,10 +39,10 @@ KMOD=	vmm
 SRCS+=	acpi_if.h bus_if.h device_if.h pci_if.h pcib_if.h vnode_if.h
 
 CFLAGS+= -DVMM_KEEP_STATS
-CFLAGS+= -I${SRCTOP}/sys/${MACHINE}/vmm
+CFLAGS+= -I${MACHINE_SRC}/vmm
 
 # generic vmm support
-.PATH: ${SRCTOP}/sys/dev/vmm ${SRCTOP}/sys/${MACHINE}/vmm
+.PATH: ${SRCTOP}/sys/dev/vmm ${MACHINE_SRC}/vmm
 
 SRCS+=	vmm.c			\
 	vmm_dev.c		\
@@ -22,7 +53,7 @@ SRCS+=	vmm.c			\
 	vmm_vm.c
 
 .if ${MACHINE_CPUARCH} == "aarch64"
-CFLAGS+= -I${SRCTOP}/sys/${MACHINE}/vmm/io
+CFLAGS+= -I${MACHINE_SRC}/vmm/io
 DPSRCS+=	assym.inc
 
 # TODO: Add the new EL2 code
@@ -35,7 +66,7 @@ SRCS+=	vmm_arm64.c \
 	vmm_vhe.c \
 	vmm_hyp_el2.S
 
-.PATH: ${SRCTOP}/sys/${MACHINE}/vmm/io
+.PATH: ${MACHINE_SRC}/vmm/io
 SRCS+=	vgic.c \
 	vgic_if.h \
 	vgic_if.c \
@@ -70,12 +101,12 @@ vmm_hyp_blob.bin:	vmm_hyp_blob.elf
 vmm_hyp_el2.o:	vmm_hyp_blob.bin
 
 .elif ${MACHINE_CPUARCH} == "amd64"
-CFLAGS+= -I${SRCTOP}/sys/${MACHINE}/vmm/io
+CFLAGS+= -I${MACHINE_SRC}/vmm/io
 DPSRCS+=	vmx_assym.h svm_assym.h
 DPSRCS+=	vmx_genassym.c svm_genassym.c offset.inc
 
-CFLAGS+= -I${SRCTOP}/sys/amd64/vmm/intel
-CFLAGS+= -I${SRCTOP}/sys/amd64/vmm/amd
+CFLAGS+= -I${SRCTOP}/sys/arch/amd64/vmm/intel
+CFLAGS+= -I${SRCTOP}/sys/arch/amd64/vmm/amd
 
 SRCS+=	opt_acpi.h		\
 	opt_bhyve_snapshot.h	\
@@ -88,7 +119,7 @@ SRCS+=	vmm_host.c	\
 	vmm_util.c	\
 	x86.c
 
-.PATH: ${SRCTOP}/sys/${MACHINE}/vmm/io
+.PATH: ${MACHINE_SRC}/vmm/io
 SRCS+=	iommu.c		\
 	ppt.c           \
 	vatpic.c	\
@@ -100,7 +131,7 @@ SRCS+=	iommu.c		\
 	vrtc.c
 
 # intel-specific files
-.PATH: ${SRCTOP}/sys/amd64/vmm/intel
+.PATH: ${SRCTOP}/sys/arch/amd64/vmm/intel
 SRCS+=	ept.c		\
 	vmcs.c		\
 	vmx_msr.c	\
@@ -109,7 +140,7 @@ SRCS+=	ept.c		\
 	vtd.c
 
 # amd-specific files
-.PATH: ${SRCTOP}/sys/amd64/vmm/amd
+.PATH: ${SRCTOP}/sys/arch/amd64/vmm/amd
 SRCS+=	vmcb.c		\
 	amdviiommu.c	\
 	ivhd_if.c	\

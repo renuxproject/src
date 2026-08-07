@@ -1,3 +1,28 @@
+# SPDX-License-Identifier: BSD-2-Clause
+#
+# Copyright (c) 2026 Renux contributors.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
 .PATH: ${.CURDIR}/../../include
 
 # XXX We need to include this to avoid installing MIT KRB5 includes on
@@ -162,7 +187,12 @@ _host_arch=powerpc
 # HACK: If MACHINE is unknown, assume we are building on x86
 _host_arch=amd64
 .endif
-MACHINESYSINCS+=	${SRCTOP}/sys/${_host_arch}/include/elf.h
+.if exists(${SRCTOP}/sys/arch/${_host_arch}/include)
+_MACHINE_INCDIR=	${SRCTOP}/sys/arch/${_host_arch}/include
+.else
+_MACHINE_INCDIR=	${SRCTOP}/sys/${_host_arch}/include
+.endif
+MACHINESYSINCS+=	${_MACHINE_INCDIR}/elf.h
 .if ${_host_arch} == "amd64" || ${_host_arch} == "i386"
 INCSGROUPS+=	X86INCS
 X86INCSDIR=	${INCLUDEDIR}/x86
@@ -170,8 +200,8 @@ X86INCS+=	${SRCTOP}/sys/x86/include/elf.h
 .endif
 
 # needed for btxld:
-MACHINESYSINCS+=	${SRCTOP}/sys/${_host_arch}/include/exec.h
-MACHINESYSINCS+=	${SRCTOP}/sys/${_host_arch}/include/reloc.h
+MACHINESYSINCS+=	${_MACHINE_INCDIR}/exec.h
+MACHINESYSINCS+=	${_MACHINE_INCDIR}/reloc.h
 INCS+=	${SRCTOP}/include/a.out.h
 INCS+=	${SRCTOP}/include/nlist.h
 SYSINCS+=	${SRCTOP}/sys/sys/imgact_aout.h

@@ -1,3 +1,28 @@
+# SPDX-License-Identifier: BSD-2-Clause
+#
+# Copyright (c) 2026 Renux contributors.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
 # The include file <bsd.kmod.mk> handles building and installing loadable
 # kernel modules.
 #
@@ -329,12 +354,19 @@ PREFIX_OBJDIR=${.OBJDIR}
 # Ensure that the links exist without depending on it when it exists which
 # causes all the modules to be rebuilt when the directory pointed to changes.
 # Ensure that debug info references the path in the source tree.
+.if exists(${SYSDIR}/arch/${MACHINE})
+_ARCHDIR=	arch
+.else
+_ARCHDIR=
+.endif
 .for _link in ${_ILINKS}
 .if !exists(${.OBJDIR}/${_link})
 OBJS_DEPEND_GUESS+=	${_link}
 .endif
 .if ${_link} == "machine"
-CFLAGS+= -fdebug-prefix-map=./machine=${PREFIX_SYSDIR}/${MACHINE}/include
+CFLAGS+= -fdebug-prefix-map=./machine=${PREFIX_SYSDIR}/${_ARCHDIR}/${MACHINE}/include
+.elif ${_link} == ${MACHINE}
+CFLAGS+= -fdebug-prefix-map=./${_link}=${PREFIX_SYSDIR}/${_ARCHDIR}/${_link}/include
 .else
 CFLAGS+= -fdebug-prefix-map=./${_link}=${PREFIX_SYSDIR}/${_link}/include
 .endif
@@ -345,10 +377,15 @@ CFLAGS+= -fdebug-prefix-map=./${_link}=${PREFIX_SYSDIR}/${_link}/include
 ${_ILINKS}:
 	@case ${.TARGET} in \
 	machine) \
-		path=${SYSDIR}/${MACHINE}/include ;; \
+		m=${MACHINE} ;; \
 	*) \
-		path=${SYSDIR}/${.TARGET:T}/include ;; \
+		m=${.TARGET:T} ;; \
 	esac ; \
+	if [ -d ${SYSDIR}/arch/$$m ] ; then \
+		path=${SYSDIR}/arch/$$m/include ; \
+	else \
+		path=${SYSDIR}/$$m/include ; \
+	fi ; \
 	path=`realpath $$path`; \
 	${ECHO} ${.TARGET:T} "->" $$path ; \
 	ln -fns $$path ${.TARGET:T}
@@ -550,10 +587,10 @@ assym.inc: genassym.o
 offset.inc: genoffset.o
 assym.inc: ${SYSDIR}/kern/genassym.sh
 	sh ${SYSDIR}/kern/genassym.sh genassym.o > ${.TARGET}
-genassym.o: ${SYSDIR}/${MACHINE}/${MACHINE}/genassym.c offset.inc
+genassym.o: ${SYSDIR}/${_ARCHDIR}/${MACHINE}/${MACHINE}/genassym.c offset.inc
 genassym.o: ${SRCS:Mopt_*.h}
 	${CC} -c ${NOSAN_CFLAGS:N-flto*:N-fno-common} -fcommon \
-	    ${SYSDIR}/${MACHINE}/${MACHINE}/genassym.c
+	    ${SYSDIR}/${_ARCHDIR}/${MACHINE}/${MACHINE}/genassym.c
 offset.inc: ${SYSDIR}/kern/genoffset.sh genoffset.o
 	sh ${SYSDIR}/kern/genoffset.sh genoffset.o > ${.TARGET}
 genoffset.o: ${SYSDIR}/kern/genoffset.c

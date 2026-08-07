@@ -1,6 +1,33 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
+ * Copyright (c) 2026 Renux contributors.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+
+/*-
+ * SPDX-License-Identifier: BSD-2-Clause
+ *
  * Copyright (c) 2021 Dmitry Chagin <dchagin@FreeBSD.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,11 +62,11 @@
 #undef	_KERNEL
 #include <stdbool.h>
 
-#include <i386/include/atomic.h>
-#include <i386/include/cpufunc.h>
+#include <machine/atomic.h>
+#include <machine/cpufunc.h>
 
-#include <amd64/linux32/linux.h>
-#include <amd64/linux32/linux32_syscall.h>
+#include <arch/amd64/linux/linux.h>
+#include <arch/amd64/linux/linux_syscall.h>
 #include <compat/linux/linux_errno.h>
 #include <compat/linux/linux_time.h>
 
@@ -51,6 +78,7 @@ uint32_t kern_cpu_selector = 0;
 #include <x86/linux/linux_vdso_gettc_x86.inc>
 #include <x86/linux/linux_vdso_getcpu_x86.inc>
 
+/* for debug purpose */
 static int
 write(int fd, const void *buf, size_t size)
 {
@@ -58,10 +86,10 @@ write(int fd, const void *buf, size_t size)
 
 	__asm__ __volatile__
 	(
-	    "int $0x80"
+	    "syscall"
 	    : "=a"(res)
-	    : "a"(LINUX32_SYS_linux_write), "b"(fd), "c"(buf), "d"(size)
-	    : "cc", "memory"
+	    : "a"(LINUX_SYS_linux_write), "D"(fd), "S"(buf), "d"(size)
+	    : "cc", "rcx", "r11", "memory"
 	);
 	return (res);
 }
@@ -73,25 +101,10 @@ __vdso_clock_gettime_fallback(clockid_t clock_id, struct l_timespec *ts)
 
 	__asm__ __volatile__
 	(
-	    "int $0x80"
+	    "syscall"
 	    : "=a"(res)
-	    : "a"(LINUX32_SYS_linux_clock_gettime), "b"(clock_id), "c"(ts)
-	    : "cc", "memory"
-	);
-	return (res);
-}
-
-static int
-__vdso_clock_gettime64_fallback(clockid_t clock_id, struct l_timespec64 *ts)
-{
-	int res;
-
-	__asm__ __volatile__
-	(
-	    "int $0x80"
-	    : "=a"(res)
-	    : "a"(LINUX32_SYS_linux_clock_gettime64), "b"(clock_id), "c"(ts)
-	    : "cc", "memory"
+	    : "a"(LINUX_SYS_linux_clock_gettime), "D"(clock_id), "S"(ts)
+	    : "cc", "rcx", "r11", "memory"
 	);
 	return (res);
 }
@@ -103,10 +116,10 @@ __vdso_gettimeofday_fallback(l_timeval *tv, struct timezone *tz)
 
 	__asm__ __volatile__
 	(
-	    "int $0x80"
+	    "syscall"
 	    : "=a"(res)
-	    : "a"(LINUX32_SYS_linux_gettimeofday), "b"(tv), "c"(tz)
-	    : "cc", "memory"
+	    : "a"(LINUX_SYS_gettimeofday), "D"(tv), "S"(tz)
+	    : "cc", "rcx", "r11", "memory"
 	);
 	return (res);
 }
@@ -118,10 +131,10 @@ __vdso_clock_getres_fallback(clockid_t clock_id, struct l_timespec *ts)
 
 	__asm__ __volatile__
 	(
-	    "int $0x80"
+	    "syscall"
 	    : "=a"(res)
-	    : "a"(LINUX32_SYS_linux_clock_getres), "b"(clock_id), "c"(ts)
-	    : "cc", "memory"
+	    : "a"(LINUX_SYS_linux_clock_getres), "D"(clock_id), "S"(ts)
+	    : "cc", "rcx", "r11", "memory"
 	);
 	return (res);
 }
@@ -133,10 +146,10 @@ __vdso_getcpu_fallback(uint32_t *cpu, uint32_t *node, void *cache)
 
 	__asm__ __volatile__
 	(
-	    "int $0x80"
+	    "syscall"
 	    : "=a"(res)
-	    : "a"(LINUX32_SYS_linux_getcpu), "D"(cpu), "S"(node), "d"(cache)
-	    : "cc", "memory"
+	    : "a"(LINUX_SYS_linux_getcpu), "D"(cpu), "S"(node), "d"(cache)
+	    : "cc", "rcx", "r11", "memory"
 	);
 	return (res);
 }
@@ -148,10 +161,10 @@ __vdso_time_fallback(long *tm)
 
 	__asm__ __volatile__
 	(
-	    "int $0x80"
+	    "syscall"
 	    : "=a"(res)
-	    : "a"(LINUX32_SYS_linux_time), "b"(tm)
-	    : "cc", "memory"
+	    : "a"(LINUX_SYS_linux_time), "D"(tm)
+	    : "cc", "rcx", "r11", "memory"
 	);
 	return (res);
 }

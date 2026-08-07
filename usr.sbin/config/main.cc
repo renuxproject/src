@@ -1,4 +1,31 @@
 /*-
+ * SPDX-License-Identifier: BSD-2-Clause
+ *
+ * Copyright (c) 2026 Renux contributors.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+
+/*-
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * Copyright (c) 1980, 1993
@@ -62,6 +89,7 @@
 
 char	*machinename;
 char	*machinearch;
+const char	*updir = "../../";
 
 struct cfgfile_head	cfgfiles;
 struct cputype_head	cputype;
@@ -271,15 +299,34 @@ static void
 get_srcdir(void)
 {
 	struct stat lg, phy;
+	char buf[MAXPATHLEN], confdir[MAXPATHLEN];
 	char *p, *pwd;
-	int i;
+	int i, depth;
 
-	if (realpath("../..", srcdir) == NULL)
+	/*
+	 * The machine conf directory is either ${S}/<machine>/conf
+	 * (legacy layout) or ${S}/arch/<machine>/conf (NetBSD-style).
+	 * Detect which one we are in so the relative paths used
+	 * throughout config stay correct.
+	 */
+	if (realpath("../..", buf) == NULL)
+		err(EXIT_FAILURE, "Unable to find root of source tree");
+	snprintf(confdir, sizeof(confdir), "%s/conf", buf);
+	if (access(confdir, R_OK) == 0)
+		depth = 2;
+	else
+		depth = 3;
+	updir = (depth == 2) ? "../../" : "../../../";
+
+	/* buf is already two levels up (depth - 2 to go from here to sys root). */
+	for (i = 2; i < depth; i++)
+		strlcat(buf, "/..", sizeof(buf));
+	if (realpath(buf, srcdir) == NULL)
 		err(EXIT_FAILURE, "Unable to find root of source tree");
 	if ((pwd = getenv("PWD")) != NULL && *pwd == '/' &&
 	    (pwd = strdup(pwd)) != NULL) {
-		/* Remove the last two path components. */
-		for (i = 0; i < 2; i++) {
+		/* Remove the last `depth' path components. */
+		for (i = 0; i < depth; i++) {
 			if ((p = strrchr(pwd, '/')) == NULL) {
 				free(pwd);
 				return;
