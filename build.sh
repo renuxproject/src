@@ -946,11 +946,22 @@ find_cdboot()
 	return 1
 }
 
-# Create a FAT32 EFI System Partition image (whole-file volume) holding the
-# EFI loader and the kernel.
+# True on the BSDs (FreeBSD/NetBSD/OpenBSD/DragonFly), whose base system
+# ships makefs/gpart/newfs_msdos instead of the Linux mkfs.fat/sfdisk/xorriso.
+host_os="$(uname -s 2>/dev/null)"
+is_bsd()
+{
+	case "${host_os}" in
+	FreeBSD|NetBSD|OpenBSD|DragonFly) return 0 ;;
+	*) return 1 ;;
+	esac
+}
+
+# Stage the EFI System Partition contents into a directory, then build the
+# FAT image from it (makefs on BSD, mkfs.fat+mtools on Linux).
 make_boot_esp()
 {
-	local img loader kern
+	local img loader kern stage
 	img="${IMAGEDIR}/renux-esp.img"
 	loader="$(find_loader_efi)"
 	if [ -z "${loader}" ]; then
@@ -963,28 +974,9 @@ make_boot_esp()
 	kern="$(kernel_image "${KERNCONF:-${KERNCONF_DEFAULT}}")"
 	[ -f "${kern}" ] ||
 	    bomb "kernel not built at ${kern}; run 'build.sh kernel=...' first"
-	command -v mkfs.fat >/dev/null 2>&1 || bomb "mkfs.fat (dosfstools) is required to build images"
-	command -v mcopy >/dev/null 2>&1 || bomb "mtools is required to build images"
+	command -v mkfs.fat >/dev/null 2>&1 || command -v makefs >/dev/null 2>&1 ||
+	    bomb "need mkfs.fat (Linux) or makefs (BSD) to build images"
 
-	rm -f "${img}"
-	if [ "${runcmd}" = echo ]; then
-		echo "truncate -s ${ESP_MB:-128}M ${img}"
-	else
-		truncate -s "${ESP_MB:-128}M" "${img}"
-	fi
-	statusmsg "Formatting ESP image ${img}"
-	${runcmd} mkfs.fat -F32 -n RENUX "${img}" >/dev/null
-	[ "${runcmd}" = echo ] && return 0
-	mmd -i "${img}" /EFI
-	mmd -i "${img}" /EFI/BOOT
-	mmd -i "${img}" /boot
-	mmd -i "${img}" /boot/kernel
-	mmd -i "${img}" /boot/defaults
-	mmd -i "${img}" /boot/lua
-	mcopy -i "${img}" "${loader}" ::/EFI/BOOT/BOOTX64.EFI
-	mcopy -i "${img}" "${kern}" ::/boot/kernel/kernel
-	# Lua loader scripts (boot menu / banner drawing).
-	mcopy -i "${img}" -s ${SRCDIR}/stand/lua/*.lua ::/boot/lua/
 	cat > "${IMAGEDIR}/loader.conf" <<'EOF'
 # Renux boot configuration (FreeBSD-style banner, "RENUX" wordmark).
 # Remove the "#" below for a graphical BMP splash screen:
@@ -995,8 +987,40 @@ autoboot_delay="2"			# seconds to wait before auto-boot
 loader_logo="orb"			# orb logo (ball with spikes) + RENUX banner
 console="vidconsole"
 EOF
-	mcopy -i "${img}" "${IMAGEDIR}/loader.conf" ::/boot/loader.conf
-	mcopy -i "${img}" "${IMAGEDIR}/loader.conf" ::/boot/defaults/loader.conf
+
+	if [ "${runcmd}" = echo ]; then
+		echo "stage ESP: ${loader} + kernel + /boot/lua + loader.conf"
+		return 0
+	fi
+
+	# Build the ESP tree in a staging directory.
+	stage="${IMAGEDIR}/esp-stage"
+	rm -rf "${stage}"
+	mkdir -p "${stage}/EFI/BOOT" "${stage}/boot/kernel" \
+	    "${stage}/boot/defaults" "${stage}/boot/lua"
+	cp "${loader}" "${stage}/EFI/BOOT/BOOTX64.EFI"
+	cp "${kern}" "${stage}/boot/kernel/kernel"
+	cp ${SRCDIR}/stand/lua/*.lua "${stage}/boot/lua/"
+	cp "${IMAGEDIR}/loader.conf" "${stage}/boot/loader.conf"
+	cp "${IMAGEDIR}/loader.conf" "${stage}/boot/defaults/loader.conf"
+
+	statusmsg "Building ESP image ${img}"
+	if is_bsd; then
+		command -v makefs >/dev/null 2>&1 ||
+		    bomb "makefs is required on ${host_os}"
+		makefs -t msdos -o fat_type=32 -o volume_label=RENUX \
+		    "${img}" "${stage}" ||
+		    bomb "makefs failed"
+	else
+		command -v mkfs.fat >/dev/null 2>&1 ||
+		    bomb "mkfs.fat (dosfstools) is required"
+		command -v mcopy >/dev/null 2>&1 ||
+		    bomb "mtools is required"
+		rm -f "${img}"
+		truncate -s "${ESP_MB:-128}M" "${img}"
+		mkfs.fat -F32 -n RENUX "${img}" >/dev/null
+		mcopy -i "${img}" -s "${stage}/"* ::/
+	fi
 }
 
 # Stage a shared boot tree (kernel + lua scripts + loader.conf) for the
@@ -1028,9 +1052,19 @@ make_uefi_disk()
 	rm -f "${disk}"
 	truncate -s $(( (start + esp_sectors + 4096) * 512 )) "${disk}"
 	statusmsg "Assembling UEFI GPT boot image ${disk}"
-	${runcmd} sh -c \
-	    "printf 'label: gpt\\nstart=${start}, size=${esp_sectors}, type=uefi, bootable\\n' | sfdisk ${disk}" ||
-	    bomb "sfdisk failed; is it installed?"
+	if is_bsd; then
+		command -v gpart >/dev/null 2>&1 ||
+		    bomb "gpart is required on ${host_os}"
+		${runcmd} gpart create -s gpt "${disk}" || bomb "gpart create failed"
+		${runcmd} gpart add -t efi -b ${start} -s ${esp_sectors} "${disk}" ||
+		    bomb "gpart add failed"
+	else
+		command -v sfdisk >/dev/null 2>&1 ||
+		    bomb "sfdisk is required to build images"
+		${runcmd} sh -c \
+		    "printf 'label: gpt\\nstart=${start}, size=${esp_sectors}, type=uefi, bootable\\n' | sfdisk ${disk}" ||
+		    bomb "sfdisk failed"
+	fi
 	[ "${runcmd}" = echo ] && return 0
 	dd if="${IMAGEDIR}/renux-esp.img" of="${disk}" bs=512 seek=${start} conv=notrunc
 }
@@ -1038,7 +1072,9 @@ make_uefi_disk()
 # UEFI-bootable ISO (El Torito) using the ESP image as the EFI boot medium.
 make_uefi_iso()
 {
-	command -v xorriso >/dev/null 2>&1 || bomb "xorriso is required to build an ISO"
+	if ! is_bsd && ! command -v xorriso >/dev/null 2>&1; then
+		bomb "xorriso is required to build an ISO on this host"
+	fi
 	rm -rf "${IMAGEDIR}/isofiles"
 	mkdir -p "${IMAGEDIR}/isofiles"
 	if [ "${runcmd}" = echo ]; then
@@ -1047,19 +1083,28 @@ make_uefi_iso()
 		cp "${IMAGEDIR}/renux-esp.img" "${IMAGEDIR}/isofiles/"
 	fi
 	statusmsg "Building UEFI ISO ${IMAGEDIR}/renux-uefi.iso"
-	${runcmd} xorriso -as mkisofs \
-	    -V RENUX \
-	    -o "${IMAGEDIR}/renux-uefi.iso" \
-	    -eltorito-alt-boot -e renux-esp.img -no-emul-boot -isohybrid-gpt-basdat \
-	    "${IMAGEDIR}/isofiles" ||
-	    bomb "xorriso failed"
+	if is_bsd; then
+		command -v makefs >/dev/null 2>&1 ||
+		    bomb "makefs is required on ${host_os}"
+		${runcmd} makefs -t cd9660 -o label=RENUX \
+		    -o bootimage=efi\;${IMAGEDIR}/renux-esp.img \
+		    -o no-emul-boot -o platformid=efi \
+		    "${IMAGEDIR}/isofiles" "${IMAGEDIR}/renux-uefi.iso" ||
+		    bomb "makefs failed"
+	else
+		${runcmd} xorriso -as mkisofs \
+		    -V RENUX \
+		    -o "${IMAGEDIR}/renux-uefi.iso" \
+		    -eltorito-alt-boot -e renux-esp.img -no-emul-boot -isohybrid-gpt-basdat \
+		    "${IMAGEDIR}/isofiles" ||
+		    bomb "xorriso failed"
+	fi
 }
 
 # BIOS-bootable ISO (El Torito) using cdboot + the BIOS lua loader.
 make_bios_iso()
 {
 	local stage loader cdboot obj sh init
-	command -v xorriso >/dev/null 2>&1 || bomb "xorriso is required to build an ISO"
 	loader="$(find_bios_loader)"
 	if [ -z "${loader}" ]; then
 		if [ "${runcmd}" = echo ]; then
@@ -1100,11 +1145,22 @@ EOF
 	fi
 
 	statusmsg "Building BIOS ISO ${IMAGEDIR}/renux-bios.iso"
-	${runcmd} xorriso -as mkisofs -V RENUXBIOS \
-	    -o "${IMAGEDIR}/renux-bios.iso" \
-	    -R -b cdboot -c boot.cat -no-emul-boot -boot-load-size 4 \
-	    "${stage}" ||
-	    bomb "xorriso failed"
+	if is_bsd; then
+		command -v makefs >/dev/null 2>&1 ||
+		    bomb "makefs is required on ${host_os}"
+		${runcmd} makefs -t cd9660 -o label=RENUXBIOS \
+		    -o bootimage=i386\;${cdboot} -o no-emul-boot \
+		    "${stage}" "${IMAGEDIR}/renux-bios.iso" ||
+		    bomb "makefs failed"
+	else
+		command -v xorriso >/dev/null 2>&1 ||
+		    bomb "xorriso is required to build an ISO on this host"
+		${runcmd} xorriso -as mkisofs -V RENUXBIOS \
+		    -o "${IMAGEDIR}/renux-bios.iso" \
+		    -R -b cdboot -c boot.cat -no-emul-boot -boot-load-size 4 \
+		    "${stage}" ||
+		    bomb "xorriso failed"
+	fi
 }
 
 run_qemu()
