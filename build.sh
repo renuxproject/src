@@ -3,17 +3,17 @@
 #
 # Renux build.sh -- adapted from NetBSD's build.sh
 #
-# Copyright (c) 2023-2026 Renux contributors.
+# Copyright (c) 2026 Renux contributors.
 #	$NetBSD: build.sh,v 1.405 2026/08/01 20:14:38 thorpej Exp $
 #
 # This script is derived from the NetBSD build.sh, and is used to build
-# or cross-build Renux (a FreeBSD fork) on any Unix host: FreeBSD, Linux,
-# NetBSD, OpenBSD, DragonFly, macOS.
+# or cross-build Renux (a Unix operating system with a NetBSD-style build)
+# on any Unix host: FreeBSD, Linux, NetBSD, OpenBSD, DragonFly, macOS.
 #
-# On non-FreeBSD hosts, all world/kernel building is delegated to the
+# On hosts other than FreeBSD, all world/kernel building is delegated to the
 # official cross-build driver ${SRCDIR}/tools/build/make.py, which
 # bootstraps bmake from this source and infers the cross-compiler
-# (clang/lld).  No FreeBSD host or preinstalled toolchain is required.
+# (clang/lld).  No preinstalled FreeBSD host or toolchain is required.
 #
 
 #
@@ -228,7 +228,7 @@ find_in_PATH()
 	echo "${result}"
 }
 
-# valid_targets -- table of supported Renux/FreeBSD targets.
+# valid_targets -- table of supported Renux targets.
 #
 # Each line contains a MACHINE and a MACHINE_ARCH pair.  Aliases, and
 # a DEFAULT marker for when only MACHINE is given.
@@ -410,8 +410,8 @@ help()
     -U             Build unprivileged (NO_ROOT=yes).
     -u             Incremental build (do not run cleanWorld first).
     -V VAR=[VAL]   Set make variable VAR=[VAL].
-    -X X11SRC      Ignored on this fork.
-    -x             Ignored on this fork.
+    -X X11SRC      Ignored on Renux.
+    -x             Ignored on Renux.
     -Z VAR         Unset ("zap") variable VAR.
     -?             Show this help message, and exit.
 
@@ -551,7 +551,7 @@ host_tune_m()
 
 # ---------------------------------------------------------------------
 #
-# build driver for this fork (delegates to make.py)
+# build driver (delegates to make.py)
 #
 # ---------------------------------------------------------------------
 SRCDIR="${SRCDIR:-$(cd "$(dirname "$0")" && pwd)/src}"

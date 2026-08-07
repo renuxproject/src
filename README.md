@@ -2,19 +2,19 @@ Renux Source:
 ---------------
 This is the top level of the Renux source directory.
 
-FreeBSD is an operating system used to power modern servers, desktops, and embedded platforms.
-A large community has continually developed it for more than thirty years.
-Its advanced networking, security, and storage features have made FreeBSD the platform of choice for many of the busiest web sites and most pervasive embedded networking and storage devices.
+Renux is an operating system used to power modern servers, desktops, and embedded platforms.
+A community has continually developed it for more than thirty years.
+Its advanced networking, security, and storage features have made Renux the platform of choice for many of the busiest web sites and most pervasive embedded networking and storage devices.
 
 For copyright information, please see [the file COPYRIGHT](COPYRIGHT) in this directory.
 Additional copyright information also exists for some sources in this tree - please see the specific source directories for more information.
 
-The Makefile in this directory supports a number of targets for building components (or all) of the FreeBSD source tree.
-See build(7), config(8), [FreeBSD handbook on building userland](https://docs.freebsd.org/en/books/handbook/cutting-edge/#makeworld), and [Handbook for kernels](https://docs.freebsd.org/en/books/handbook/kernelconfig/) for more information, including setting make(1) variables.
+The Makefile in this directory supports a number of targets for building components (or all) of the Renux source tree.
+See build(7), config(8), for more information, including setting make(1) variables, in the way NetBSD conventions.
 
 Building with ./build.sh
 -------------------------------
-Renux brings the classic NetBSD `build.sh` entry point to the FreeBSD fork.
+Renux brings the classic NetBSD `build.sh` entry point to a modern Berkeley-heritage system.
 Instead of (or in addition to) `make buildworld`/`make buildkernel`, you can
 drive the whole build from the top of the tree with one script that behaves
 like NetBSD's `build.sh`:
@@ -52,10 +52,8 @@ disabled for portability).
 
 For copyright information, please see [the file COPYRIGHT](COPYRIGHT) in this directory.
 
-For information on the CPU architectures and platforms supported by FreeBSD, see the [FreeBSD
-website's Platforms page](https://www.freebsd.org/platforms/).
-
-For official FreeBSD bootable images, see the [release page](https://download.freebsd.org/ftp/releases/ISO-IMAGES/).
+For information on the CPU architectures and platforms supported by the
+Renux project, see the documentation shipped with this tree.
 
 Source Roadmap:
 ---------------
@@ -85,4 +83,6 @@ Source Roadmap:
 | usr.bin | User commands. |
 | usr.sbin | System administration commands. |
 
-For information on synchronizing your source tree with one or more of the FreeBSD Project's development branches, please see [FreeBSD Handbook](https://docs.freebsd.org/en/books/handbook/cutting-edge/#current-stable).
+For information on synchronizing your source tree with the development
+branches of the Renux projects, please see the documentation and mailing
+lists for the Renux project.

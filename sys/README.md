@@ -1,7 +1,7 @@
 Renux Kernel Source:
 --------------------
 
-This directory contains the source files and build glue that make up the FreeBSD
+This directory contains the source files and build glue that make up the Renux
 kernel and its modules, including both original and contributed software.
 
 Kernel configuration files are located in the `conf/` subdirectory of each
@@ -14,11 +14,13 @@ Documentation:
 
 Source code documentation is maintained in a set of man pages, under section 9.
 These pages are located in [`share/man/man9`](../share/man/man9), from the
-top-level of the src tree. Consult [`intro(9)`](https://man.freebsd.org/intro/9)
-for an overview of existing pages.
+top-level of the src tree. Consult the man pages in that directory for an
+overview of the kernel interfaces.
 
-Some additional high-level documentation of the kernel is maintained in the
-[Architecture Handbook](https://docs.freebsd.org/en/books/arch-handbook/).
+The kernel is built with the Renux `./build.sh` wrapper, e.g.:
+
+    ./build.sh kernel=GENERIC        # build the kernel (toolchain included)
+    ./build.sh kernel.gdb=GENERIC    # build a GDB-debuggable kernel
 
 Source Roadmap:
 ---------------
@@ -30,7 +32,7 @@ Source Roadmap:
 | cam | Common Access Method storage subsystem - `cam(4)` and `ctl(4)` |
 | cddl | CDDL-licensed optional sources such as DTrace |
 | conf | kernel build glue |
-| compat | Linux compatibility layer, FreeBSD 32-bit compatibility |
+| compat | Linux compatibility layer, 32-bit compatibility |
 | contrib | 3rd-party imported software such as OpenZFS |
 | crypto | crypto drivers |
 | ddb | interactive kernel debugger - `ddb(4)` |
