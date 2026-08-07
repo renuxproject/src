@@ -886,7 +886,8 @@ build_mini_userland()
 
 	# 6. /sbin/init (opens console, runs /bin/sh)
 	MINI_INIT_BIN="${obj}/usr.sbin/renux-init/renux-init"
-	if [ ! -f "${MINI_INIT_BIN}" ]; then
+	if [ ! -f "${MINI_INIT_BIN}" ] || \
+	    [ "${SRCDIR}/usr.sbin/renux-init/init.c" -nt "${MINI_INIT_BIN}" ]; then
 		statusmsg "Building /sbin/init"
 		mkdir -p "${obj}/usr.sbin/renux-init"
 		run_cross /usr/bin/clang -target "$(mach_triple)" \
