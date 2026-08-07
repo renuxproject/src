@@ -387,6 +387,11 @@ help()
     kernel.gdb=CONF     Build kernel (with kernel.gdb) with CONF.
     kernels             Build all kernels.
     install=IDIR        Install world into IDIR (installworld + installkernel).
+    iso                 Build the kernel (if needed), the EFI loader and a
+                        UEFI-bootable ISO image.
+    bootimage           Build the kernel (if needed), the EFI loader and a
+                        bootable GPT+ESP disk image (renux.img).
+    qemu                Boot the bootimage in QEMU (graphical by default).
     show-params         Show the build parameters in use.
     list-arch           List the supported architectures and exit.
 
@@ -397,7 +402,10 @@ help()
     -D DEST        Set DESTDIR=DEST.
     -E             Set "expert" mode; disables various safety checks.
     -h             Show this help message, and exit.
+    -I IMGDIR      Directory for generated images.  [Default: obj/renux-images]
     -j NJOB        Run up to NJOB parallel make jobs.
+    -K             Kernel-only mode: never build world/userland, even if a
+                   world-producing operation is requested.
     -M MOBJ        Set obj root directory MOBJ (MAKEOBJDIRPREFIX=MOBJ).
     -m MACH        Set TARGET=MACH (MACHINE), deduce TARGET_ARCH.
     -N NOISY       Set MAKEVERBOSE level (0-4).  [Default: 2]
@@ -435,7 +443,7 @@ usage()
 # ---------------------------------------------------------------------
 parseoptions()
 {
-	opts='a:B:c:D:Ej:M:m:N:nO:oR:S:T:uUV:w:X:xZ:'
+	opts='a:B:c:D:EI:j:KM:m:N:nO:oR:S:T:uUV:w:X:xZ:'
 	opt_a=false
 	opt_m=false
 
@@ -466,7 +474,9 @@ parseoptions()
 		    export DESTDIR ;;
 		-E) do_expertmode=true ;;
 		-h) help; exit 0 ;;
+		-I) eval $optargcmd; IMAGEDIR="$OPTARG" ;;
 		-j) eval $optargcmd; parallel="-j $OPTARG" ;;
+		-K) kernel_only=true ;;
 		-M) eval $optargcmd; MAKEOBJDIRPREFIX="$OPTARG" ;;
 		-m) eval $optargcmd; MACHINE="$OPTARG"; opt_m=true ;;
 		-N) eval $optargcmd; setmakeenv MAKEVERBOSE "$OPTARG" ;;
@@ -502,7 +512,7 @@ parseoptions()
 		help) help; exit 0 ;;
 		list-arch) listarch "${MACHINE}" "${MACHINE_ARCH}" ; exit ;;
 		build|world|distribution|release|tools|clean|obj|update|\
-		show-params|kernels)
+		show-params|kernels|iso|bootimage|qemu|run)
 			;;
 		kernel=*|kernel.gdb=*|install=*)
 			arg=${op#*=}
@@ -554,7 +564,16 @@ host_tune_m()
 # build driver (delegates to make.py)
 #
 # ---------------------------------------------------------------------
-SRCDIR="${SRCDIR:-$(cd "$(dirname "$0")" && pwd)/src}"
+if [ -z "${SRCDIR}" ]
+then
+	d="$(cd "$(dirname "$0")" && pwd)"
+	if [ -f "${d}/Makefile" ] && [ -f "${d}/tools/build/make.py" ]
+	then
+		SRCDIR="${d}"
+	else
+		SRCDIR="${d}/src"
+	fi
+fi
 MAKE_PY="${SRCDIR}/tools/build/make.py"
 [ -f "${SRCDIR}/Makefile" ] ||
     bomb "source tree not found at ${SRCDIR} (set SRCDIR)"
@@ -690,6 +709,186 @@ run_make_py_retry()
 
 # ---------------------------------------------------------------------------
 #
+# bootable image / ISO helpers
+#
+# Build the EFI loader from stand/, then assemble a bootable GPT+ESP disk
+# image and/or a UEFI-bootable ISO.  Everything is cross-built with the
+# same toolchain that produced the kernel, so no FreeBSD host is needed.
+#
+# ---------------------------------------------------------------------------
+
+KERNCONF_DEFAULT="${KERNCONF_DEFAULT:-GENERIC}"
+
+objroot_for_target()
+{
+	echo "${MAKEOBJDIRPREFIX}${SRCDIR}/${TARGET}.${TARGET_ARCH}"
+}
+
+kernel_image()
+{
+	local kc="${1:-${KERNCONF_DEFAULT}}"
+	echo "$(objroot_for_target)/sys/${kc}/kernel"
+}
+
+mach_triple()
+{
+	case "${TARGET_ARCH}" in
+	amd64)			echo "x86_64-unknown-freebsd15.1" ;;
+	arm64|aarch64)		echo "aarch64-unknown-freebsd15.1" ;;
+	i386)			echo "i386-unknown-freebsd15.1" ;;
+	riscv64)		echo "riscv64-unknown-freebsd15.1" ;;
+	powerpc64)		echo "powerpc64-unknown-freebsd15.1" ;;
+	*)			echo "${TARGET_ARCH}-unknown-freebsd15.1" ;;
+	esac
+}
+
+# Run a command inside the cross-build environment used for kernel/loader.
+run_cross()
+{
+	local obj tmp tri
+	obj="$(objroot_for_target)"; tmp="${obj}/tmp"; tri="$(mach_triple)"
+	if [ "${runcmd}" = echo ]; then
+		echo "$*"
+		return 0
+	fi
+	env MACHINE="${TARGET}" MACHINE_ARCH="${TARGET_ARCH}" \
+	    TARGET="${TARGET}" TARGET_ARCH="${TARGET_ARCH}" \
+	    CC="/usr/bin/clang -target ${tri} --sysroot=${tmp} -B${tmp}/usr/bin" \
+	    CXX="/usr/bin/clang++ -target ${tri} --sysroot=${tmp} -B${tmp}/usr/bin" \
+	    LD="/usr/bin/ld.lld" \
+	    PATH="${obj}/tmp/bin:${obj}/tmp/usr/sbin:${obj}/tmp/usr/bin:${obj}/tmp/legacy/usr/sbin:${obj}/tmp/legacy/usr/bin:${obj}/tmp/legacy/bin:${HOST_SHIMS}:${PATH}" \
+	    SYSROOT="${tmp}" WORLDTMP="${tmp}" \
+	    INSTALL="sh ${SRCDIR}/tools/install.sh" \
+	    MAKEOBJDIRPREFIX="${obj}" "$@"
+}
+
+build_efi_loader()
+{
+	statusmsg "Building EFI loader (stand/efi)"
+	run_cross "${BMAKE}" -C "${SRCDIR}/stand" -m "${SRCDIR}/share/mk" \
+	    -j "${njobs}" -DWITH_AUTO_OBJ -DWITHOUT_CLEAN efi ||
+	    bomb "EFI loader build failed"
+}
+
+find_loader_efi()
+{
+	local obj found
+	obj="$(objroot_for_target)"
+	for l in \
+	    "${obj}/stand/efi/loader_simp/loader_simp.efi" \
+	    "${SRCDIR}/stand/efi/loader_simp/loader_simp.efi"
+	do
+		[ -f "${l}" ] && { echo "${l}"; return 0; }
+	done
+	found="$(find "${obj}" -path "*loader_simp/loader_simp.efi" 2>/dev/null | head -1)"
+	[ -n "${found}" ] && { echo "${found}"; return 0; }
+	return 1
+}
+
+# Create a FAT32 EFI System Partition image (whole-file volume) holding the
+# EFI loader and the kernel.
+make_boot_esp()
+{
+	local img loader kern
+	img="${IMAGEDIR}/renux-esp.img"
+	loader="$(find_loader_efi)"
+	if [ -z "${loader}" ]; then
+		if [ "${runcmd}" = echo ]; then
+			loader="<loader.efi>"
+		else
+			bomb "EFI loader not found; build it with 'iso' or 'bootimage'"
+		fi
+	fi
+	kern="$(kernel_image "${KERNCONF:-${KERNCONF_DEFAULT}}")"
+	[ -f "${kern}" ] ||
+	    bomb "kernel not built at ${kern}; run 'build.sh kernel=...' first"
+	command -v mkfs.fat >/dev/null 2>&1 || bomb "mkfs.fat (dosfstools) is required to build images"
+	command -v mcopy >/dev/null 2>&1 || bomb "mtools is required to build images"
+
+	rm -f "${img}"
+	if [ "${runcmd}" = echo ]; then
+		echo "truncate -s ${ESP_MB:-128}M ${img}"
+	else
+		truncate -s "${ESP_MB:-128}M" "${img}"
+	fi
+	statusmsg "Formatting ESP image ${img}"
+	${runcmd} mkfs.fat -F32 -n RENUX "${img}" >/dev/null
+	[ "${runcmd}" = echo ] && return 0
+	mmd -i "${img}" /EFI
+	mmd -i "${img}" /EFI/BOOT
+	mmd -i "${img}" /boot
+	mmd -i "${img}" /boot/kernel
+	mmd -i "${img}" /boot/defaults
+	mcopy -i "${img}" "${loader}" ::/EFI/BOOT/BOOTX64.EFI
+	mcopy -i "${img}" "${kern}" ::/boot/kernel/kernel
+	printf 'autoboot_delay="2"\n' | mcopy -i "${img}" - ::/boot/loader.conf
+	printf 'autoboot_delay="2"\n' | mcopy -i "${img}" - ::/boot/defaults/loader.conf
+}
+
+# Wrap the ESP image in a GPT disk so QEMU/OVMF can boot it as a hard disk.
+make_boot_image()
+{
+	local disk start esp_sectors esp_bytes
+	disk="${IMAGEDIR}/renux.img"
+	esp_sectors=$(( ${ESP_MB:-128} * 1024 * 1024 / 512 ))
+	start=2048
+	rm -f "${disk}"
+	truncate -s $(( (start + esp_sectors + 4096) * 512 )) "${disk}"
+	statusmsg "Assembling GPT boot image ${disk}"
+	${runcmd} sh -c \
+	    "printf 'label: gpt\\nstart=${start}, size=${esp_sectors}, type=uefi, bootable\\n' | sfdisk ${disk}" ||
+	    bomb "sfdisk failed; is it installed?"
+	[ "${runcmd}" = echo ] && return 0
+	dd if="${IMAGEDIR}/renux-esp.img" of="${disk}" bs=512 seek=${start} conv=notrunc
+}
+
+# UEFI-bootable ISO (El Torito) using the ESP image as the EFI boot medium.
+make_iso()
+{
+	command -v xorriso >/dev/null 2>&1 || bomb "xorriso is required to build an ISO"
+	rm -rf "${IMAGEDIR}/isofiles"
+	mkdir -p "${IMAGEDIR}/isofiles"
+	if [ "${runcmd}" = echo ]; then
+		echo "cp ${IMAGEDIR}/renux-esp.img ${IMAGEDIR}/isofiles/"
+	else
+		cp "${IMAGEDIR}/renux-esp.img" "${IMAGEDIR}/isofiles/"
+	fi
+	statusmsg "Building ISO ${IMAGEDIR}/renux.iso"
+	${runcmd} xorriso -as mkisofs \
+	    -V RENUX \
+	    -o "${IMAGEDIR}/renux.iso" \
+	    -eltorito-alt-boot -e renux-esp.img -no-emul-boot -isohybrid-gpt-basdat \
+	    "${IMAGEDIR}/isofiles" ||
+	    bomb "xorriso failed"
+}
+
+run_qemu()
+{
+	local img ovmf
+	img="${IMAGEDIR}/renux.img"
+	[ -f "${img}" ] || make_boot_image
+	command -v qemu-system-x86_64 >/dev/null 2>&1 ||
+	    bomb "qemu-system-x86_64 is required for the 'qemu' operation"
+	ovmf=
+	for f in /usr/share/OVMF/x64/OVMF_CODE.4m.fd /usr/share/OVMF/OVMF_CODE.fd
+	do
+		[ -f "${f}" ] && { ovmf="${f}"; break; }
+	done
+	statusmsg "Starting QEMU: ${img}"
+	if [ "${runcmd}" = echo ]; then
+		echo "qemu-system-x86_64 -drive file=${img} -m ${QEMU_MEM:-1024} -display ${QEMU_DISPLAY:-default}"
+		return 0
+	fi
+	qemu-system-x86_64 -machine q35,accel=tcg \
+	    -m "${QEMU_MEM:-1024}" \
+	    ${ovmf:+-drive if=pflash,format=raw,readonly=on,file=${ovmf}} \
+	    -drive file="${img}",format=raw,if=none,id=disk \
+	    -device ide-hd,drive=disk,bus=ide.0 \
+	    -display "${QEMU_DISPLAY:-default}" -no-reboot &
+}
+
+# ---------------------------------------------------------------------------
+#
 # main
 #
 # ---------------------------------------------------------------------------
@@ -708,12 +907,20 @@ main()
 	MKX11=
 	X11SRCDIR=
 	MKUPDATE=no
+	kernel_only=false
+	IMAGEDIR="${IMAGEDIR:-${MAKEOBJDIRPREFIX}/renux-images}"
+	do_image=false
+	have_kernel=false
 
 	build_start=$(date)
 	statusmsg "${progname}: started: ${build_start}"
 
 	parseoptions "$@"
 	provision_host_shims
+
+	BMAKE="${MAKEOBJDIRPREFIX}/bmake-install/bin/bmake"
+	njobs="${parallel#-j }"
+	[ -n "${njobs}" ] || njobs="${ncpu:-2}"
 
 	# extra make variables sent to the driver
 	extra=""
@@ -737,16 +944,36 @@ main()
 	for op in ${operations}
 	do
 		case "$op" in
-		build)           did=true; cmd="${cmd} buildworld buildkernel" ;;
-		world)           did=true; cmd="${cmd} buildworld" ;;
-		distribution)    did=true; cmd="${cmd} distribution" ;;
-		release)         did=true; cmd="${cmd} release" ;;
+		build)
+			if [ "${kernel_only}" = true ]; then
+				did=true; have_kernel=true
+				cmd="${cmd} KERNCONF=${KERNCONF:-${KERNCONF_DEFAULT}} WERROR= kernel-toolchain buildkernel"
+			else
+				did=true; cmd="${cmd} buildworld buildkernel"
+			fi
+			;;
+		world|distribution|release)
+			if [ "${kernel_only}" = true ]; then
+				warning "${op} ignored in kernel-only mode (-K)"
+				did=true; have_kernel=true
+				cmd="${cmd} KERNCONF=${KERNCONF:-${KERNCONF_DEFAULT}} WERROR= kernel-toolchain buildkernel"
+			else
+				did=true; cmd="${cmd} buildworld"
+			fi
+			;;
 		tools)           did=true; cmd="${cmd} buildtools" ;;
-		kernels)         did=true; cmd="${cmd} WERROR= kernel-toolchain buildkernel" ;;
-		kernel=*)        did=true; cmd="${cmd} KERNCONF=${op#kernel=} WERROR= kernel-toolchain buildkernel" ;;
-		kernel.gdb=*)    did=true; cmd="${cmd} KERNCONF=${op#kernel.gdb=} WERROR= kernel-toolchain buildkernel" ;;
+		kernels)         did=true; have_kernel=true; cmd="${cmd} WERROR= kernel-toolchain buildkernel" ;;
+		kernel=*)        did=true; have_kernel=true; KERNCONF="${op#kernel=}"; cmd="${cmd} KERNCONF=${KERNCONF} WERROR= kernel-toolchain buildkernel" ;;
+		kernel.gdb=*)    did=true; have_kernel=true; KERNCONF="${op#kernel.gdb=}"; cmd="${cmd} KERNCONF=${KERNCONF} WERROR= kernel-toolchain buildkernel" ;;
 		install=*)       did=true
 			cmd="${cmd} DESTDIR=${op#install=} installworld installkernel" ;;
+		iso|bootimage|qemu|run)
+			do_image=true
+			if [ "${have_kernel}" = false ]; then
+				did=true; have_kernel=true
+				cmd="${cmd} KERNCONF=${KERNCONF:-${KERNCONF_DEFAULT}} WERROR= kernel-toolchain buildkernel"
+			fi
+			;;
 		clean)
 			rm -rf "${MAKEOBJDIRPREFIX}"/bmake-build "${MAKEOBJDIRPREFIX}"/buildworld* 2>/dev/null
 			;;
@@ -784,6 +1011,21 @@ main()
 	then
 		statusmsg "Command: ${cmd}"
 		run_make_py_retry "${cmd}"
+	fi
+
+	if [ "${do_image}" = true ]
+	then
+		mkdir -p "${IMAGEDIR}"
+		build_efi_loader
+		make_boot_esp
+		make_boot_image
+		for op in ${operations}
+		do
+			case "$op" in
+			iso)	make_iso ;;
+			qemu|run)	run_qemu ;;
+			esac
+		done
 	fi
 
 	statusmsg "${progname}: ended: $(date)"
