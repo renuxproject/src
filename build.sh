@@ -898,6 +898,27 @@ build_mini_userland()
 	fi
 }
 
+# 7. tiny static utilities for the boot shell (clear, uname, reboot, ...).
+build_renux_tools()
+{
+	local obj tmp src bin
+	obj="$(objroot_for_target)"; tmp="${obj}/tmp"
+	MINI_TOOLS_DIR="${obj}/renux-tools"
+	src="${SRCDIR}/usr.sbin/renux-tools"
+	command -v clang >/dev/null 2>&1 || bomb "clang is required"
+	mkdir -p "${MINI_TOOLS_DIR}"
+	statusmsg "Building mini-userland tools"
+	for c in "${src}"/*.c; do
+		bin="$(basename "${c}" .c)"
+		if [ ! -f "${MINI_TOOLS_DIR}/${bin}" ] || [ "${c}" -nt "${MINI_TOOLS_DIR}/${bin}" ]; then
+			run_cross /usr/bin/clang -target "$(mach_triple)" \
+			    --sysroot="${tmp}" -B"${tmp}/usr/bin" -static -O2 \
+			    -o "${MINI_TOOLS_DIR}/${bin}" "${c}" -lc ||
+			    bomb "failed to build ${bin}"
+		fi
+	done
+}
+
 find_loader_efi()
 {
 	local obj found
@@ -1130,10 +1151,23 @@ make_bios_iso()
 		echo "mini-userland: add /bin/sh + /sbin/init to ISO root"
 	elif [ -n "${MINI_SH_BIN}" ] && [ -f "${MINI_SH_BIN}" ] && \
 	    [ -f "${MINI_INIT_BIN}" ]; then
-		mkdir -p "${stage}/bin" "${stage}/sbin" "${stage}/dev" \
-		    "${stage}/etc" "${stage}/tmp"
+		mkdir -p "${stage}/bin" "${stage}/sbin" "${stage}/usr/bin" \
+		    "${stage}/usr/sbin" "${stage}/dev" "${stage}/etc" "${stage}/tmp"
 		cp "${MINI_SH_BIN}" "${stage}/bin/sh"
 		cp "${MINI_INIT_BIN}" "${stage}/sbin/init"
+		# Tiny utilities for the boot shell.
+		if [ -n "${MINI_TOOLS_DIR}" ] && [ -d "${MINI_TOOLS_DIR}" ]; then
+			cp "${MINI_TOOLS_DIR}/uname"  "${stage}/usr/bin/uname"
+			cp "${MINI_TOOLS_DIR}/hostname" "${stage}/usr/bin/hostname"
+			cp "${MINI_TOOLS_DIR}/id"      "${stage}/usr/bin/id"
+			cp "${MINI_TOOLS_DIR}/whoami"  "${stage}/usr/bin/whoami"
+			cp "${MINI_TOOLS_DIR}/echo"    "${stage}/usr/bin/echo"
+			cp "${MINI_TOOLS_DIR}/cat"     "${stage}/bin/cat"
+			cp "${MINI_TOOLS_DIR}/ls"      "${stage}/bin/ls"
+			cp "${MINI_TOOLS_DIR}/date"    "${stage}/usr/bin/date"
+			cp "${MINI_TOOLS_DIR}/clear"   "${stage}/usr/bin/clear"
+			cp "${MINI_TOOLS_DIR}/reboot"  "${stage}/sbin/reboot"
+		fi
 		cat > "${stage}/boot/loader.conf" <<'EOF'
 # Renux boot configuration: boot to a root shell on the ISO.
 autoboot_delay="2"
@@ -1336,6 +1370,7 @@ main()
 		build_efi_loader
 		build_bios_loader
 		build_mini_userland
+		build_renux_tools
 		make_boot_esp
 		for op in ${operations}
 		do
