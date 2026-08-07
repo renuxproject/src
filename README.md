@@ -27,10 +27,11 @@ like NetBSD's `build.sh`:
     ./build.sh kernel.gdb=GENERIC       # include a GDB-debuggable kernel
     ./build.sh kernels                   # build all kernels
 
-    # Bootable images (kernel + EFI loader, no userland needed)
-    ./build.sh bootimage                # GPT+ESP disk image (renux.img)
-    ./build.sh iso                      # UEFI-bootable ISO (renux.iso)
-    ./build.sh qemu                     # boot the image in QEMU (GUI)
+    # Bootable images (kernel + loader, no userland needed)
+    ./build.sh bootimage                # UEFI disk (renux-uefi.img) + BIOS ISO (renux-bios.iso)
+    ./build.sh iso                      # UEFI ISO (renux-uefi.iso) + BIOS ISO (renux-bios.iso)
+    ./build.sh qemu                     # boot UEFI image in QEMU (GUI)
+    ./build.sh -L bios qemu             # boot the BIOS ISO in QEMU (SeaBIOS)
 
     # Other useful operations
     ./build.sh world                     # buildworld only

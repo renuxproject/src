@@ -387,11 +387,11 @@ help()
     kernel.gdb=CONF     Build kernel (with kernel.gdb) with CONF.
     kernels             Build all kernels.
     install=IDIR        Install world into IDIR (installworld + installkernel).
-    iso                 Build the kernel (if needed), the EFI loader and a
-                        UEFI-bootable ISO image.
-    bootimage           Build the kernel (if needed), the EFI loader and a
-                        bootable GPT+ESP disk image (renux.img).
-    qemu                Boot the bootimage in QEMU (graphical by default).
+    iso                 Build the kernel (if needed), both loaders and
+                        UEFI + BIOS bootable ISO images.
+    bootimage           Build the kernel (if needed), both loaders and a
+                        UEFI GPT+ESP disk image plus a BIOS ISO.
+    qemu                Boot the image in QEMU (-L efi|bios).
     show-params         Show the build parameters in use.
     list-arch           List the supported architectures and exit.
 
@@ -406,6 +406,7 @@ help()
     -j NJOB        Run up to NJOB parallel make jobs.
     -K             Kernel-only mode: never build world/userland, even if a
                    world-producing operation is requested.
+    -L MODE        Boot mode for 'qemu': efi (default) or bios.
     -M MOBJ        Set obj root directory MOBJ (MAKEOBJDIRPREFIX=MOBJ).
     -m MACH        Set TARGET=MACH (MACHINE), deduce TARGET_ARCH.
     -N NOISY       Set MAKEVERBOSE level (0-4).  [Default: 2]
@@ -443,7 +444,7 @@ usage()
 # ---------------------------------------------------------------------
 parseoptions()
 {
-	opts='a:B:c:D:EI:j:KM:m:N:nO:oR:S:T:uUV:w:X:xZ:'
+	opts='a:B:c:D:EI:j:KL:m:M:N:nO:oR:S:T:uUV:w:X:xZ:'
 	opt_a=false
 	opt_m=false
 
@@ -477,6 +478,7 @@ parseoptions()
 		-I) eval $optargcmd; IMAGEDIR="$OPTARG" ;;
 		-j) eval $optargcmd; parallel="-j $OPTARG" ;;
 		-K) kernel_only=true ;;
+		-L) eval $optargcmd; boot_mode="$OPTARG" ;;
 		-M) eval $optargcmd; MAKEOBJDIRPREFIX="$OPTARG" ;;
 		-m) eval $optargcmd; MACHINE="$OPTARG"; opt_m=true ;;
 		-N) eval $optargcmd; setmakeenv MAKEVERBOSE "$OPTARG" ;;
@@ -770,6 +772,14 @@ build_efi_loader()
 	    bomb "EFI loader build failed"
 }
 
+build_bios_loader()
+{
+	statusmsg "Building BIOS loader (stand/i386)"
+	run_cross "${BMAKE}" -C "${SRCDIR}/stand" -m "${SRCDIR}/share/mk" \
+	    -j "${njobs}" -DWITH_AUTO_OBJ -DWITHOUT_CLEAN i386 ||
+	    bomb "BIOS loader build failed"
+}
+
 find_loader_efi()
 {
 	local obj found
@@ -784,6 +794,36 @@ find_loader_efi()
 		[ -f "${l}" ] && { echo "${l}"; return 0; }
 	done
 	found="$(find "${obj}" \( -path "*loader_lua/loader_lua.efi" -o -path "*loader_simp/loader_simp.efi" \) 2>/dev/null | head -1)"
+	[ -n "${found}" ] && { echo "${found}"; return 0; }
+	return 1
+}
+
+find_bios_loader()
+{
+	local obj found
+	obj="$(objroot_for_target)"
+	for l in \
+	    "${obj}/stand/i386/loader_lua/loader_lua" \
+	    "${SRCDIR}/stand/i386/loader_lua/loader_lua"
+	do
+		[ -f "${l}" ] && { echo "${l}"; return 0; }
+	done
+	found="$(find "${obj}" -path "*stand/i386/loader_lua/loader_lua" 2>/dev/null | head -1)"
+	[ -n "${found}" ] && { echo "${found}"; return 0; }
+	return 1
+}
+
+find_cdboot()
+{
+	local obj found
+	obj="$(objroot_for_target)"
+	for l in \
+	    "${obj}/stand/i386/cdboot/cdboot" \
+	    "${SRCDIR}/stand/i386/cdboot/cdboot"
+	do
+		[ -f "${l}" ] && { echo "${l}"; return 0; }
+	done
+	found="$(find "${obj}" -path "*stand/i386/cdboot/cdboot" 2>/dev/null | head -1)"
 	[ -n "${found}" ] && { echo "${found}"; return 0; }
 	return 1
 }
@@ -828,7 +868,7 @@ make_boot_esp()
 	# Lua loader scripts (boot menu / banner drawing).
 	mcopy -i "${img}" -s ${SRCDIR}/stand/lua/*.lua ::/boot/lua/
 	cat > "${IMAGEDIR}/loader.conf" <<'EOF'
-# Renux boot configuration (FreeBSD-style BIOS banner, "RENUX" wordmark).
+# Renux boot configuration (FreeBSD-style banner, "RENUX" wordmark).
 # Remove the "#" below for a graphical BMP splash screen:
 #splash_bmp_load="YES"
 #bitmap_load="YES"
@@ -841,16 +881,35 @@ EOF
 	mcopy -i "${img}" "${IMAGEDIR}/loader.conf" ::/boot/defaults/loader.conf
 }
 
-# Wrap the ESP image in a GPT disk so QEMU/OVMF can boot it as a hard disk.
-make_boot_image()
+# Stage a shared boot tree (kernel + lua scripts + loader.conf) for the
+# BIOS ISO.
+stage_boot_tree()
 {
-	local disk start esp_sectors esp_bytes
-	disk="${IMAGEDIR}/renux.img"
+	local dest="$1" kern
+	kern="$(kernel_image "${KERNCONF:-${KERNCONF_DEFAULT}}")"
+	[ -f "${kern}" ] ||
+	    bomb "kernel not built at ${kern}; run 'build.sh kernel=...' first"
+	mkdir -p "${dest}/boot/kernel" "${dest}/boot/lua" "${dest}/boot/defaults"
+	if [ "${runcmd}" != echo ]; then
+		cp "${kern}" "${dest}/boot/kernel/kernel"
+		cp "${SRCDIR}/stand/lua/"*.lua "${dest}/boot/lua/"
+		cp "${IMAGEDIR}/loader.conf" "${dest}/boot/loader.conf"
+		cp "${IMAGEDIR}/loader.conf" "${dest}/boot/defaults/loader.conf"
+	else
+		echo "cp kernel + /boot/lua + loader.conf -> ${dest}/boot"
+	fi
+}
+
+# Wrap the ESP image in a GPT disk so QEMU/OVMF can boot it as a hard disk.
+make_uefi_disk()
+{
+	local disk start esp_sectors
+	disk="${IMAGEDIR}/renux-uefi.img"
 	esp_sectors=$(( ${ESP_MB:-128} * 1024 * 1024 / 512 ))
 	start=2048
 	rm -f "${disk}"
 	truncate -s $(( (start + esp_sectors + 4096) * 512 )) "${disk}"
-	statusmsg "Assembling GPT boot image ${disk}"
+	statusmsg "Assembling UEFI GPT boot image ${disk}"
 	${runcmd} sh -c \
 	    "printf 'label: gpt\\nstart=${start}, size=${esp_sectors}, type=uefi, bootable\\n' | sfdisk ${disk}" ||
 	    bomb "sfdisk failed; is it installed?"
@@ -859,7 +918,7 @@ make_boot_image()
 }
 
 # UEFI-bootable ISO (El Torito) using the ESP image as the EFI boot medium.
-make_iso()
+make_uefi_iso()
 {
 	command -v xorriso >/dev/null 2>&1 || bomb "xorriso is required to build an ISO"
 	rm -rf "${IMAGEDIR}/isofiles"
@@ -869,28 +928,74 @@ make_iso()
 	else
 		cp "${IMAGEDIR}/renux-esp.img" "${IMAGEDIR}/isofiles/"
 	fi
-	statusmsg "Building ISO ${IMAGEDIR}/renux.iso"
+	statusmsg "Building UEFI ISO ${IMAGEDIR}/renux-uefi.iso"
 	${runcmd} xorriso -as mkisofs \
 	    -V RENUX \
-	    -o "${IMAGEDIR}/renux.iso" \
+	    -o "${IMAGEDIR}/renux-uefi.iso" \
 	    -eltorito-alt-boot -e renux-esp.img -no-emul-boot -isohybrid-gpt-basdat \
 	    "${IMAGEDIR}/isofiles" ||
+	    bomb "xorriso failed"
+}
+
+# BIOS-bootable ISO (El Torito) using cdboot + the BIOS lua loader.
+make_bios_iso()
+{
+	local stage loader cdboot
+	command -v xorriso >/dev/null 2>&1 || bomb "xorriso is required to build an ISO"
+	loader="$(find_bios_loader)"
+	if [ -z "${loader}" ]; then
+		if [ "${runcmd}" = echo ]; then
+			loader="<bios-loader>"
+		else
+			bomb "BIOS loader not found; build it with 'iso' or 'bootimage'"
+		fi
+	fi
+	cdboot="$(find_cdboot)" || bomb "cdboot not found"
+	stage="${IMAGEDIR}/bios-stage"
+	rm -rf "${stage}"
+	mkdir -p "${stage}/boot"
+	if [ "${runcmd}" != echo ]; then
+		cp "${cdboot}" "${stage}/cdboot"
+		cp "${loader}" "${stage}/boot/loader"
+		stage_boot_tree "${stage}"
+	else
+		echo "cp cdboot + BIOS loader + boot tree -> ${stage}"
+	fi
+	statusmsg "Building BIOS ISO ${IMAGEDIR}/renux-bios.iso"
+	${runcmd} xorriso -as mkisofs -V RENUXBIOS \
+	    -o "${IMAGEDIR}/renux-bios.iso" \
+	    -R -b cdboot -c boot.cat -no-emul-boot -boot-load-size 4 \
+	    "${stage}" ||
 	    bomb "xorriso failed"
 }
 
 run_qemu()
 {
 	local img ovmf
-	img="${IMAGEDIR}/renux.img"
-	[ -f "${img}" ] || make_boot_image
 	command -v qemu-system-x86_64 >/dev/null 2>&1 ||
 	    bomb "qemu-system-x86_64 is required for the 'qemu' operation"
+	if [ "${boot_mode}" = bios ]; then
+		img="${IMAGEDIR}/renux-bios.iso"
+		[ -f "${img}" ] || make_bios_iso
+		statusmsg "Starting QEMU (BIOS): ${img}"
+		if [ "${runcmd}" = echo ]; then
+			echo "qemu-system-x86_64 -cdrom ${img} -m ${QEMU_MEM:-1024} -display ${QEMU_DISPLAY:-default}"
+			return 0
+		fi
+		qemu-system-x86_64 -machine q35,accel=tcg \
+		    -m "${QEMU_MEM:-1024}" \
+		    -cdrom "${img}" -boot d \
+		    -display "${QEMU_DISPLAY:-default}" -no-reboot &
+		return 0
+	fi
+	img="${IMAGEDIR}/renux-uefi.img"
+	[ -f "${img}" ] || make_uefi_disk
 	ovmf=
 	for f in /usr/share/OVMF/x64/OVMF_CODE.4m.fd /usr/share/OVMF/OVMF_CODE.fd
 	do
 		[ -f "${f}" ] && { ovmf="${f}"; break; }
 	done
-	statusmsg "Starting QEMU: ${img}"
+	statusmsg "Starting QEMU (UEFI): ${img}"
 	if [ "${runcmd}" = echo ]; then
 		echo "qemu-system-x86_64 -drive file=${img} -m ${QEMU_MEM:-1024} -display ${QEMU_DISPLAY:-default}"
 		return 0
@@ -925,6 +1030,7 @@ main()
 	MKUPDATE=no
 	kernel_only=false
 	IMAGEDIR="${IMAGEDIR:-${MAKEOBJDIRPREFIX}/renux-images}"
+	boot_mode="${boot_mode:-efi}"
 	do_image=false
 	have_kernel=false
 
@@ -1033,12 +1139,13 @@ main()
 	then
 		mkdir -p "${IMAGEDIR}"
 		build_efi_loader
+		build_bios_loader
 		make_boot_esp
-		make_boot_image
 		for op in ${operations}
 		do
 			case "$op" in
-			iso)	make_iso ;;
+			iso)	make_uefi_disk; make_uefi_iso; make_bios_iso ;;
+			bootimage)	make_uefi_disk; make_bios_iso ;;
 			qemu|run)	run_qemu ;;
 			esac
 		done
