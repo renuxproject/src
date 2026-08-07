@@ -39,6 +39,8 @@
 
 #define	MISMATCHEXIT	2
 
+#include <sys/stat.h>
+
 typedef struct _node {
 	struct _node	*parent, *child;	/* up, down */
 	struct _node	*prev, *next;		/* left, right */

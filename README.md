@@ -1,6 +1,6 @@
-FreeBSD Source:
+Renux Source:
 ---------------
-This is the top level of the FreeBSD source directory.
+This is the top level of the Renux source directory.
 
 FreeBSD is an operating system used to power modern servers, desktops, and embedded platforms.
 A large community has continually developed it for more than thirty years.

@@ -1,5 +1,5 @@
-FreeBSD Kernel Source:
-----------------------
+Renux Kernel Source:
+--------------------
 
 This directory contains the source files and build glue that make up the FreeBSD
 kernel and its modules, including both original and contributed software.
