@@ -1022,10 +1022,12 @@ make_boot_esp()
 
 	cat > "${IMAGEDIR}/loader.conf" <<'EOF'
 # Renux UEFI boot configuration: boot to a root shell on the ESP.
+# Root is found via the FAT volume label (RENUX), so it works on any
+# disk/controller regardless of the device name (ada0p1, da0p1, nvme...).
 autoboot_delay="2"
 loader_logo="orb"			# orb logo (ball with spikes) + RENUX banner
 console="vidconsole"
-vfs.root.mountfrom="msdosfs:/dev/ada0p1"
+vfs.root.mountfrom="msdosfs:/dev/msdosfs/RENUX"
 EOF
 
 	if [ "${runcmd}" = echo ]; then
