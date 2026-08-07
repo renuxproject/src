@@ -978,6 +978,28 @@ is_bsd()
 	esac
 }
 
+# Copy the mini-userland (shell + init + tools) into a boot-tree directory.
+stage_userland()
+{
+	local dest="$1"
+	mkdir -p "${dest}/bin" "${dest}/sbin" "${dest}/usr/bin" \
+	    "${dest}/usr/sbin" "${dest}/dev" "${dest}/etc" "${dest}/tmp"
+	cp "${MINI_SH_BIN}" "${dest}/bin/sh"
+	cp "${MINI_INIT_BIN}" "${dest}/sbin/init"
+	if [ -n "${MINI_TOOLS_DIR}" ] && [ -d "${MINI_TOOLS_DIR}" ]; then
+		cp "${MINI_TOOLS_DIR}/uname"    "${dest}/usr/bin/uname"
+		cp "${MINI_TOOLS_DIR}/hostname" "${dest}/usr/bin/hostname"
+		cp "${MINI_TOOLS_DIR}/id"       "${dest}/usr/bin/id"
+		cp "${MINI_TOOLS_DIR}/whoami"   "${dest}/usr/bin/whoami"
+		cp "${MINI_TOOLS_DIR}/echo"     "${dest}/usr/bin/echo"
+		cp "${MINI_TOOLS_DIR}/cat"      "${dest}/bin/cat"
+		cp "${MINI_TOOLS_DIR}/ls"       "${dest}/bin/ls"
+		cp "${MINI_TOOLS_DIR}/date"     "${dest}/usr/bin/date"
+		cp "${MINI_TOOLS_DIR}/clear"    "${dest}/usr/bin/clear"
+		cp "${MINI_TOOLS_DIR}/reboot"   "${dest}/sbin/reboot"
+	fi
+}
+
 # Stage the EFI System Partition contents into a directory, then build the
 # FAT image from it (makefs on BSD, mkfs.fat+mtools on Linux).
 make_boot_esp()
@@ -999,14 +1021,11 @@ make_boot_esp()
 	    bomb "need mkfs.fat (Linux) or makefs (BSD) to build images"
 
 	cat > "${IMAGEDIR}/loader.conf" <<'EOF'
-# Renux boot configuration (FreeBSD-style banner, "RENUX" wordmark).
-# Remove the "#" below for a graphical BMP splash screen:
-#splash_bmp_load="YES"
-#bitmap_load="YES"
-#bitmap_name="/boot/splash.bmp"
-autoboot_delay="2"			# seconds to wait before auto-boot
+# Renux UEFI boot configuration: boot to a root shell on the ESP.
+autoboot_delay="2"
 loader_logo="orb"			# orb logo (ball with spikes) + RENUX banner
-console="vidconsole"
+console="comconsole vidconsole"
+vfs.root.mountfrom="msdosfs:/dev/ada0p1"
 EOF
 
 	if [ "${runcmd}" = echo ]; then
@@ -1024,6 +1043,7 @@ EOF
 	cp ${SRCDIR}/stand/lua/*.lua "${stage}/boot/lua/"
 	cp "${IMAGEDIR}/loader.conf" "${stage}/boot/loader.conf"
 	cp "${IMAGEDIR}/loader.conf" "${stage}/boot/defaults/loader.conf"
+	stage_userland "${stage}"
 
 	statusmsg "Building ESP image ${img}"
 	if is_bsd; then
@@ -1151,23 +1171,7 @@ make_bios_iso()
 		echo "mini-userland: add /bin/sh + /sbin/init to ISO root"
 	elif [ -n "${MINI_SH_BIN}" ] && [ -f "${MINI_SH_BIN}" ] && \
 	    [ -f "${MINI_INIT_BIN}" ]; then
-		mkdir -p "${stage}/bin" "${stage}/sbin" "${stage}/usr/bin" \
-		    "${stage}/usr/sbin" "${stage}/dev" "${stage}/etc" "${stage}/tmp"
-		cp "${MINI_SH_BIN}" "${stage}/bin/sh"
-		cp "${MINI_INIT_BIN}" "${stage}/sbin/init"
-		# Tiny utilities for the boot shell.
-		if [ -n "${MINI_TOOLS_DIR}" ] && [ -d "${MINI_TOOLS_DIR}" ]; then
-			cp "${MINI_TOOLS_DIR}/uname"  "${stage}/usr/bin/uname"
-			cp "${MINI_TOOLS_DIR}/hostname" "${stage}/usr/bin/hostname"
-			cp "${MINI_TOOLS_DIR}/id"      "${stage}/usr/bin/id"
-			cp "${MINI_TOOLS_DIR}/whoami"  "${stage}/usr/bin/whoami"
-			cp "${MINI_TOOLS_DIR}/echo"    "${stage}/usr/bin/echo"
-			cp "${MINI_TOOLS_DIR}/cat"     "${stage}/bin/cat"
-			cp "${MINI_TOOLS_DIR}/ls"      "${stage}/bin/ls"
-			cp "${MINI_TOOLS_DIR}/date"    "${stage}/usr/bin/date"
-			cp "${MINI_TOOLS_DIR}/clear"   "${stage}/usr/bin/clear"
-			cp "${MINI_TOOLS_DIR}/reboot"  "${stage}/sbin/reboot"
-		fi
+		stage_userland "${stage}"
 		cat > "${stage}/boot/loader.conf" <<'EOF'
 # Renux boot configuration: boot to a root shell on the ISO.
 autoboot_delay="2"
