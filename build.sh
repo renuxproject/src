@@ -834,7 +834,7 @@ make_boot_esp()
 #bitmap_load="YES"
 #bitmap_name="/boot/splash.bmp"
 autoboot_delay="2"			# seconds to wait before auto-boot
-loader_logo="beastie"			# classic beastie logo + RENUX banner
+loader_logo="orb"			# orb logo (ball with spikes) + RENUX banner
 console="vidconsole"
 EOF
 	mcopy -i "${img}" "${IMAGEDIR}/loader.conf" ::/boot/loader.conf
