@@ -49,7 +49,7 @@
 #		like the -V command
 #
 
-TYPE="FreeBSD"
+TYPE="Renux"
 REVISION="15.1"
 BRANCH="RELEASE-p1"
 if [ -n "${BRANCH_OVERRIDE}" ]; then
@@ -77,7 +77,7 @@ VERSION="${VERSION:-${TYPE} ${RELEASE}}"
 RELDATE=$(awk '/^#define[[:space:]]*__FreeBSD_version/ {print $3}' ${PARAMFILE:-${SYSDIR}/sys/param.h})
 
 if [ -r "${SYSDIR}/../COPYRIGHT" ]; then
-	year=$(sed -Ee '/^Copyright .* The FreeBSD Project/!d;s/^.*1992-([0-9]*) .*$/\1/g' ${SYSDIR}/../COPYRIGHT)
+	year=$(sed -Ee '/^Copyright .* The Renux Project/!d;s/^.*-([0-9]{4}) .*$/\1/g' ${SYSDIR}/../COPYRIGHT)
 else
 	year=$(date +%Y)
 fi
@@ -90,7 +90,7 @@ do
 		    -e "s/\[year\]/1992-$year/" \
 		    -e 's/\[your name here\]\.* /The FreeBSD Project./' \
 		    -e 's/\[your name\]\.*/The FreeBSD Project./' \
-		    -e '/\[id for your version control system, if any\]/d' \
+		    -e 's/\[id for your version control system, if any\]/Copyright (c) 2026-2026 The Renux Project./' \
 		    $bsd_copyright)
 		break
 	fi
@@ -100,6 +100,7 @@ done
 if [ -z "$COPYRIGHT" ]; then
 	COPYRIGHT="/*-
  * Copyright (c) 1992-$year The FreeBSD Project.
+ * Copyright (c) 2026-2026 The Renux Project.
  *
  */"
 fi

@@ -821,8 +821,19 @@ make_boot_esp()
 	mmd -i "${img}" /boot/defaults
 	mcopy -i "${img}" "${loader}" ::/EFI/BOOT/BOOTX64.EFI
 	mcopy -i "${img}" "${kern}" ::/boot/kernel/kernel
-	printf 'autoboot_delay="2"\n' | mcopy -i "${img}" - ::/boot/loader.conf
-	printf 'autoboot_delay="2"\n' | mcopy -i "${img}" - ::/boot/defaults/loader.conf
+	cat > "${IMAGEDIR}/loader.conf" <<'EOF'
+# Renux boot configuration (NetBSD-style simple boot).
+# Remove the "#" below for a graphical BMP splash screen:
+#splash_bmp_load="YES"
+#bitmap_load="YES"
+#bitmap_name="/boot/splash.bmp"
+autoboot_delay="2"			# seconds to wait before auto-boot
+beastie_disable="YES"			# no logo, simple text boot
+loader_logo="none"
+console="vidconsole"
+EOF
+	mcopy -i "${img}" "${IMAGEDIR}/loader.conf" ::/boot/loader.conf
+	mcopy -i "${img}" "${IMAGEDIR}/loader.conf" ::/boot/defaults/loader.conf
 }
 
 # Wrap the ESP image in a GPT disk so QEMU/OVMF can boot it as a hard disk.

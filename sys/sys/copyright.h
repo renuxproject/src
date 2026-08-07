@@ -37,6 +37,10 @@
 #define COPYRIGHT_FreeBSD \
 	"Copyright (c) 1992-2025 The FreeBSD Project.\n"
 
+/* Renux */
+#define COPYRIGHT_Renux \
+	"Copyright (c) 2026-2026 The Renux Project.\n"
+
 /* Foundation */
 #define	TRADEMARK_Foundation \
 	"FreeBSD is a registered trademark of The FreeBSD Foundation.\n"
@@ -45,5 +49,5 @@
 #define COPYRIGHT_UCB \
 	"Copyright (c) 1979, 1980, 1983, 1986, 1988, 1989, 1991, 1992, 1993, 1994\n\tThe Regents of the University of California. All rights reserved.\n"
 
-const char copyright[] = COPYRIGHT_Vendor COPYRIGHT_FreeBSD COPYRIGHT_UCB;
+const char copyright[] = COPYRIGHT_Vendor COPYRIGHT_FreeBSD COPYRIGHT_Renux COPYRIGHT_UCB;
 const char trademark[] = TRADEMARK_Foundation;
