@@ -27,6 +27,11 @@ like NetBSD's `build.sh`:
     ./build.sh kernel.gdb=GENERIC       # include a GDB-debuggable kernel
     ./build.sh kernels                   # build all kernels
 
+    # Bootable images (kernel + EFI loader, no userland needed)
+    ./build.sh bootimage                # GPT+ESP disk image (renux.img)
+    ./build.sh iso                      # UEFI-bootable ISO (renux.iso)
+    ./build.sh qemu                     # boot the image in QEMU (GUI)
+
     # Other useful operations
     ./build.sh world                     # buildworld only
     ./build.sh distribution             # build distribution
@@ -39,6 +44,8 @@ like NetBSD's `build.sh`:
     ./build.sh -m amd64 -a amd64    kernel=GENERIC   # explicit target
     ./build.sh -j 8                 build           # parallel make
     ./build.sh -n                   kernel=GENERIC   # dry-run (show commands)
+    ./build.sh -K                   iso             # kernel-only image
+    ./build.sh -I /some/out/dir     bootimage       # output image directory
     ./build.sh -D /some/dest        world           # set DESTDIR
     ./build.sh -U                   world           # unprivileged (NO_ROOT)
 
@@ -49,6 +56,12 @@ provisions missing host tools (e.g. `time`, `bc`, `hostname`) into
 when using the `kernel=` operations, and tolerates a host compiler newer
 than the one officially supported (kernel builds go out with `-Werror`
 disabled for portability).
+
+The `iso`/`bootimage`/`qemu` operations build the EFI loader from `stand/`
+with the same cross toolchain and produce a kernel-only boot medium:
+`EFI/BOOT/BOOTX64.EFI` plus `/boot/kernel/kernel` on a FAT32 ESP, wrapped in
+a GPT disk (`renux.img`) or an El Torito ISO (`renux.iso`).  These boot
+straight into the kernel; a full system requires `world`/`distribution`.
 
 For copyright information, please see [the file COPYRIGHT](COPYRIGHT) in this directory.
 
