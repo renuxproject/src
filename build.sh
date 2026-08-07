@@ -1176,10 +1176,12 @@ make_bios_iso()
 		stage_userland "${stage}"
 		cat > "${stage}/boot/loader.conf" <<'EOF'
 # Renux boot configuration: boot to a root shell on the ISO.
+# Root is found via the ISO9660 volume label (RENUXBIOS), so it works on
+# any CD/disk drive regardless of the device name.
 autoboot_delay="2"
 loader_logo="orb"
 console="comconsole vidconsole"
-vfs.root.mountfrom="cd9660:cd0"
+vfs.root.mountfrom="cd9660:/dev/iso9660/RENUXBIOS"
 EOF
 		cp "${stage}/boot/loader.conf" "${stage}/boot/defaults/loader.conf"
 	fi
