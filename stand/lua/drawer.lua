@@ -320,7 +320,7 @@ local function drawbox()
 	local y = menu_position.y - 1
 	local w = frame_size.w
 	local menu_header = loader.getenv("loader_menu_title") or
-	    "Welcome to FreeBSD"
+	    "Welcome to Renux"
 	local menu_header_align = loader.getenv("loader_menu_title_align")
 	local menu_header_x
 
@@ -456,13 +456,12 @@ local function drawitem(func)
 end
 
 fbsd_brand = {
-"  ______               ____   _____ _____  ",
-" |  ____|             |  _ \\ / ____|  __ \\ ",
-" | |___ _ __ ___  ___ | |_) | (___ | |  | |",
-" |  ___| '__/ _ \\/ _ \\|  _ < \\___ \\| |  | |",
-" | |   | | |  __/  __/| |_) |____) | |__| |",
-" | |   | | |    |    ||     |      |      |",
-" |_|   |_|  \\___|\\___||____/|_____/|_____/ "
+" _____                       ",
+" |  __ \\                      ",
+" | |__) |___ _ __  _   ___  __",
+" |  _  // _ \\ '_ \\| | | \\ \\/ /",
+" | | \\ \\  __/ | | | |_| |>  < ",
+" |_|  \\_\\___|_| |_|\\__,_/_/\\_\\",
 }
 none = {""}
 

@@ -774,13 +774,16 @@ find_loader_efi()
 {
 	local obj found
 	obj="$(objroot_for_target)"
+	# Prefer the lua loader: it draws the boot banner (logo + wordmark).
 	for l in \
+	    "${obj}/stand/efi/loader_lua/loader_lua.efi" \
+	    "${SRCDIR}/stand/efi/loader_lua/loader_lua.efi" \
 	    "${obj}/stand/efi/loader_simp/loader_simp.efi" \
 	    "${SRCDIR}/stand/efi/loader_simp/loader_simp.efi"
 	do
 		[ -f "${l}" ] && { echo "${l}"; return 0; }
 	done
-	found="$(find "${obj}" -path "*loader_simp/loader_simp.efi" 2>/dev/null | head -1)"
+	found="$(find "${obj}" \( -path "*loader_lua/loader_lua.efi" -o -path "*loader_simp/loader_simp.efi" \) 2>/dev/null | head -1)"
 	[ -n "${found}" ] && { echo "${found}"; return 0; }
 	return 1
 }
@@ -819,17 +822,19 @@ make_boot_esp()
 	mmd -i "${img}" /boot
 	mmd -i "${img}" /boot/kernel
 	mmd -i "${img}" /boot/defaults
+	mmd -i "${img}" /boot/lua
 	mcopy -i "${img}" "${loader}" ::/EFI/BOOT/BOOTX64.EFI
 	mcopy -i "${img}" "${kern}" ::/boot/kernel/kernel
+	# Lua loader scripts (boot menu / banner drawing).
+	mcopy -i "${img}" -s ${SRCDIR}/stand/lua/*.lua ::/boot/lua/
 	cat > "${IMAGEDIR}/loader.conf" <<'EOF'
-# Renux boot configuration (NetBSD-style simple boot).
+# Renux boot configuration (FreeBSD-style BIOS banner, "RENUX" wordmark).
 # Remove the "#" below for a graphical BMP splash screen:
 #splash_bmp_load="YES"
 #bitmap_load="YES"
 #bitmap_name="/boot/splash.bmp"
 autoboot_delay="2"			# seconds to wait before auto-boot
-beastie_disable="YES"			# no logo, simple text boot
-loader_logo="none"
+loader_logo="beastie"			# classic beastie logo + RENUX banner
 console="vidconsole"
 EOF
 	mcopy -i "${img}" "${IMAGEDIR}/loader.conf" ::/boot/loader.conf
