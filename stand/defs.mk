@@ -247,12 +247,20 @@ ${_ILINKS}: .NOMETA
 	@case ${.TARGET:T} in \
 	machine) \
 		if [ ${DO32:U0} -eq 0 ]; then \
-			path=${SYSDIR}/${MACHINE}/include ; \
+			if [ -d ${SYSDIR}/arch/${MACHINE}/include ] ; then \
+				path=${SYSDIR}/arch/${MACHINE}/include ; \
+			else \
+				path=${SYSDIR}/${MACHINE}/include ; \
+			fi ; \
 		else \
 			path=${SYSDIR}/${MACHINE:C/amd64/i386/}/include ; \
 		fi ;; \
 	*) \
-		path=${SYSDIR}/${.TARGET:T}/include ;; \
+		if [ -d ${SYSDIR}/arch/${.TARGET:T}/include ] ; then \
+			path=${SYSDIR}/arch/${.TARGET:T}/include ; \
+		else \
+			path=${SYSDIR}/${.TARGET:T}/include ; \
+		fi ;; \
 	esac ; \
 	case ${.TARGET} in \
 	*/*) mkdir -p ${.TARGET:H};; \
