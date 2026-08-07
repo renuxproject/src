@@ -1,10 +1,10 @@
 Renux Source:
 ---------------
-This is the top level of the Renux source directory.
+Renux is a modern BSD operating system, designed to be easy to maintain and
+debug, with a focus on portability and performance. The whole tree is meant
+to be understandable and modifiable.
 
-Renux is an operating system used to power modern servers, desktops, and embedded platforms.
-A community has continually developed it for more than thirty years.
-Its advanced networking, security, and storage features have made Renux the platform of choice for many of the busiest web sites and most pervasive embedded networking and storage devices.
+This is the top level of the Renux source directory.
 
 For copyright information, please see [the file COPYRIGHT](COPYRIGHT) in this directory.
 Additional copyright information also exists for some sources in this tree - please see the specific source directories for more information.
