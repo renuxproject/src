@@ -109,6 +109,7 @@ sched_renux_load_rem(void)
 	sched_renux_total--;
 }
 
+
 /*
  * Find the best CPU for a thread: its previous CPU when the affinity and
  * the cpuset allow it, otherwise the least loaded CPU in the cpuset.
@@ -279,8 +280,9 @@ sched_renux_choose(void)
 			bestload = runq_length[i];
 		}
 	}
-	if (best < 0)
+	if (best < 0) {
 		return (PCPU_GET(idlethread));
+	}
 	td = runq_choose(&runq_pcpu[best]);
 	if (td == NULL)
 		return (PCPU_GET(idlethread));
