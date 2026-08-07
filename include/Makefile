@@ -5,6 +5,12 @@
 PACKAGE=clibs
 CLEANFILES= osreldate.h version
 SUBDIR= arpa protocols rpcsvc rpc ssp xlocale
+.if exists(${SRCTOP}/sys/arch/${MACHINE})
+MACHINE_SRC=	${SRCTOP}/sys/arch/${MACHINE}
+.else
+MACHINE_SRC=	${SRCTOP}/sys/${MACHINE}
+.endif
+MACHINE_SRC_REL=	${MACHINE_SRC:C,^${SRCTOP}/,,}
 .if ${MACHINE_CPUARCH} == "amd64"
 SUBDIR+=		i386
 INCLUDE_SUBDIRS+=	i386
@@ -386,11 +392,11 @@ copies: .PHONY .META
 	${INSTALL} -C ${TAG_ARGS:D${TAG_ARGS},dev} -o ${BINOWN} -g ${BINGRP} -m 444 $i/*.h \
 	    ${SDESTDIR}${INCLUDEDIR}/$i
 .endfor
-	cd ${SRCTOP}/sys/${MACHINE}/include; \
+	cd ${MACHINE_SRC}/include; \
 	${INSTALL} -C ${TAG_ARGS:D${TAG_ARGS},dev} -o ${BINOWN} -g ${BINGRP} -m 444 *.h \
 	    ${SDESTDIR}${INCLUDEDIR}/machine
-.if exists(${SRCTOP}/sys/${MACHINE}/include/pc)
-	cd ${SRCTOP}/sys/${MACHINE}/include/pc; \
+.if exists(${MACHINE_SRC}/include/pc)
+	cd ${MACHINE_SRC}/include/pc; \
 	${INSTALL} -C ${TAG_ARGS:D${TAG_ARGS},dev} -o ${BINOWN} -g ${BINGRP} -m 444 *.h \
 	    ${SDESTDIR}${INCLUDEDIR}/machine/pc
 .endif
@@ -457,11 +463,11 @@ symlinks: .PHONY .META
 	${INSTALL_SYMLINK} ${TAG_ARGS:D${TAG_ARGS},dev} ../../../sys/opencrypto/cryptodev.h \
 	    ${SDESTDIR}${INCLUDEDIR}/crypto; \
 	cd ${SRCTOP}; ${INSTALL_SYMLINK} ${TAG_ARGS:D${TAG_ARGS},dev} \
-	    $$(printf '../../../%s ' sys/${MACHINE}/include/*.h) \
+	    $$(printf '../../../%s ' ${MACHINE_SRC_REL}/include/*.h) \
 	    ${SDESTDIR}${INCLUDEDIR}/machine;
-.if exists(${SRCTOP}/sys/${MACHINE}/include/pc)
+.if exists(${MACHINE_SRC}/include/pc)
 	cd ${SRCTOP}; ${INSTALL_SYMLINK} ${TAG_ARGS:D${TAG_ARGS},dev} \
-	    $$(printf '../../../../%s ' sys/${MACHINE}/include/pc/*.h) \
+	    $$(printf '../../../../%s ' ${MACHINE_SRC_REL}/include/pc/*.h) \
 	    ${SDESTDIR}${INCLUDEDIR}/machine/pc;
 .endif
 .for _MARCH in ${_MARCHS}

@@ -780,6 +780,123 @@ build_bios_loader()
 	    bomb "BIOS loader build failed"
 }
 
+# ---------------------------------------------------------------------------
+# Minimal userland for the boot ISOs: a static /bin/sh, the libraries it
+# needs, and a tiny /sbin/init that opens the console and runs sh.  This
+# avoids a full buildworld while still giving an interactive root shell.
+# ---------------------------------------------------------------------------
+BMK_ARGS="-DWITHOUT_CLEAN MK_WERROR=no MK_TESTS=no MK_MAN=no"
+
+# Run bmake for the build host (host tools such as mknodes/make_keys).
+run_host_bmake()
+{
+	local dir="$1"; shift
+	if [ "${runcmd}" = echo ]; then
+		echo "${BMAKE} -C ${dir} $*"
+		return 0
+	fi
+	env MACHINE="${TARGET}" MACHINE_ARCH="${TARGET_ARCH}" \
+	    TARGET="${TARGET}" TARGET_ARCH="${TARGET_ARCH}" \
+	    PATH="${MAKEOBJDIRPREFIX}/bmake-install/bin:${objroot_for_target}/tmp/bin:${objroot_for_target}/tmp/usr/sbin:${objroot_for_target}/tmp/usr/bin:${objroot_for_target}/tmp/legacy/usr/sbin:${objroot_for_target}/tmp/legacy/usr/bin:${objroot_for_target}/tmp/legacy/bin:${HOST_SHIMS}:${PATH}" \
+	    WORLDTMP="$(objroot_for_target)/tmp" \
+	    INSTALL="sh ${SRCDIR}/tools/install.sh" \
+	    MAKEOBJDIRPREFIX="$(objroot_for_target)" \
+	    "${BMAKE}" -C "${dir}" -m "${SRCDIR}/tools/build/mk" \
+	    -m "${SRCDIR}/share/mk" -j "${njobs}" \
+	    -DNO_CPU_CFLAGS -DNO_PIC -DNO_SHARED MK_TESTS=no MK_WERROR=no "$@"
+}
+
+ensure_libgcc_stub()
+{
+	local tmp
+	tmp="$(objroot_for_target)/tmp"
+	if [ ! -f "${tmp}/usr/lib/libgcc_s.a" ]; then
+		statusmsg "Creating libgcc_s stub (compiler-rt based build)"
+		mkdir -p "${tmp}/usr/lib"
+		( cd "${tmp}/usr/lib" && ar rcs libgcc_s.a )
+	fi
+}
+
+build_mini_userland()
+{
+	local obj tmp
+	obj="$(objroot_for_target)"; tmp="${obj}/tmp"
+	command -v ar >/dev/null 2>&1 || bomb "ar is required for the mini-userland"
+
+	# 1. target headers (includes phase)
+	if [ ! -f "${tmp}/usr/include/machine/_types.h" ]; then
+		statusmsg "Installing target include headers"
+		run_cross "${BMAKE}" -f Makefile.inc1 -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" DESTDIR="${tmp}" includes ||
+		    bomb "includes phase failed"
+	fi
+
+	ensure_libgcc_stub
+
+	# 2. libc
+	if [ ! -f "${tmp}/usr/lib/libc.a" ]; then
+		statusmsg "Building libc"
+		run_cross "${BMAKE}" -C lib/libc -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} all ||
+		    bomb "libc build failed"
+		run_cross "${BMAKE}" -C lib/libc -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} DESTDIR="${tmp}" install ||
+		    bomb "libc install failed"
+	fi
+
+	# 3. ncurses (tinfo) + its build tools
+	if [ ! -f "${tmp}/usr/lib/libtinfow.a" ]; then
+		statusmsg "Building ncurses (tinfo)"
+		run_host_bmake lib/ncurses/tinfo build-tools ||
+		    bomb "ncurses build-tools failed"
+		run_cross "${BMAKE}" -C lib/ncurses/tinfo -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} \
+		    BTOOLSPATH="${obj}/lib/ncurses/tinfo" all ||
+		    bomb "ncurses tinfo build failed"
+		run_cross "${BMAKE}" -C lib/ncurses/tinfo -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} \
+		    BTOOLSPATH="${obj}/lib/ncurses/tinfo" DESTDIR="${tmp}" install ||
+		    bomb "ncurses tinfo install failed"
+	fi
+
+	# 4. libedit
+	if [ ! -f "${tmp}/usr/lib/libedit.a" ]; then
+		statusmsg "Building libedit"
+		run_cross "${BMAKE}" -C lib/libedit -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} all ||
+		    bomb "libedit build failed"
+		run_cross "${BMAKE}" -C lib/libedit -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} DESTDIR="${tmp}" install ||
+		    bomb "libedit install failed"
+	fi
+
+	# 5. static /bin/sh (needs its build tools on the build host)
+	MINI_SH_BIN=
+	if [ ! -f "${obj}/bin/sh/sh" ]; then
+		statusmsg "Building static /bin/sh"
+		run_host_bmake bin/sh build-tools ||
+		    bomb "sh build-tools failed"
+		run_cross "${BMAKE}" -C bin/sh -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} \
+		    BTOOLSPATH="${obj}/bin/sh" LDFLAGS=-static all ||
+		    bomb "sh build failed"
+	fi
+	MINI_SH_BIN="$(find "${obj}" -path "*bin/sh/sh" -type f 2>/dev/null | head -1)"
+	[ -n "${MINI_SH_BIN}" ] || MINI_SH_BIN="${obj}/bin/sh/sh"
+
+	# 6. /sbin/init (opens console, runs /bin/sh)
+	MINI_INIT_BIN="${obj}/usr.sbin/renux-init/renux-init"
+	if [ ! -f "${MINI_INIT_BIN}" ]; then
+		statusmsg "Building /sbin/init"
+		mkdir -p "${obj}/usr.sbin/renux-init"
+		run_cross /usr/bin/clang -target "$(mach_triple)" \
+		    --sysroot="${tmp}" -B"${tmp}/usr/bin" -static -O2 \
+		    -o "${MINI_INIT_BIN}" \
+		    "${SRCDIR}/usr.sbin/renux-init/init.c" -lc ||
+		    bomb "init build failed"
+	fi
+}
+
 find_loader_efi()
 {
 	local obj found
@@ -940,7 +1057,7 @@ make_uefi_iso()
 # BIOS-bootable ISO (El Torito) using cdboot + the BIOS lua loader.
 make_bios_iso()
 {
-	local stage loader cdboot
+	local stage loader cdboot obj sh init
 	command -v xorriso >/dev/null 2>&1 || bomb "xorriso is required to build an ISO"
 	loader="$(find_bios_loader)"
 	if [ -z "${loader}" ]; then
@@ -961,6 +1078,26 @@ make_bios_iso()
 	else
 		echo "cp cdboot + BIOS loader + boot tree -> ${stage}"
 	fi
+
+	# Interactive root shell (static /bin/sh + /sbin/init) when built.
+	if [ "${runcmd}" = echo ]; then
+		echo "mini-userland: add /bin/sh + /sbin/init to ISO root"
+	elif [ -n "${MINI_SH_BIN}" ] && [ -f "${MINI_SH_BIN}" ] && \
+	    [ -f "${MINI_INIT_BIN}" ]; then
+		mkdir -p "${stage}/bin" "${stage}/sbin" "${stage}/dev" \
+		    "${stage}/etc" "${stage}/tmp"
+		cp "${MINI_SH_BIN}" "${stage}/bin/sh"
+		cp "${MINI_INIT_BIN}" "${stage}/sbin/init"
+		cat > "${stage}/boot/loader.conf" <<'EOF'
+# Renux boot configuration: boot to a root shell on the ISO.
+autoboot_delay="2"
+loader_logo="orb"
+console="comconsole vidconsole"
+vfs.root.mountfrom="cd9660:cd0"
+EOF
+		cp "${stage}/boot/loader.conf" "${stage}/boot/defaults/loader.conf"
+	fi
+
 	statusmsg "Building BIOS ISO ${IMAGEDIR}/renux-bios.iso"
 	${runcmd} xorriso -as mkisofs -V RENUXBIOS \
 	    -o "${IMAGEDIR}/renux-bios.iso" \
@@ -1140,6 +1277,7 @@ main()
 		mkdir -p "${IMAGEDIR}"
 		build_efi_loader
 		build_bios_loader
+		build_mini_userland
 		make_boot_esp
 		for op in ${operations}
 		do

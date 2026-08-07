@@ -24,37 +24,7 @@ The kernel is built with the Renux `./build.sh` wrapper, e.g.:
     ./build.sh kernel=GENERIC        # build the kernel (toolchain included)
     ./build.sh kernel.gdb=GENERIC    # build a GDB-debuggable kernel
 
-Testing the kernel
-------------------
-
-After `./build.sh kernel=GENERIC`, the resulting kernel image is:
-
-    obj/home/renan/Projetos/renux/src/amd64.amd64/sys/GENERIC/kernel
-
-(Use `find obj -name kernel` to locate it.)
-
-Quick checks without booting:
-
-    # list the kernel's linkage and format
-    file obj/home/renan/Projetos/renux/src/amd64.amd64/sys/GENERIC/kernel
-
-    # show kernel version / compile date
-    strings obj/home/renan/Projetos/renux/src/amd64.amd64/sys/GENERIC/kernel | grep "Kernel compiled"
-
-Booting it (native Renux/FreeBSD host):
-
-    # install the kernel, then reboot
-    sudo make -C obj/home/renan/Projetos/renux/src/amd64.amd64/sys/GENERIC installkernel
-
-Booting under an emulator (e.g. QEMU/bhyve on Linux or macOS):
-
-    qemu-system-x86_64 -kernel obj/home/renan/Projetos/renux/src/amd64.amd64/sys/GENERIC/kernel \
-        -nographic -m 512M
-
-Note: a kernel built this way expects its root filesystem and userland to be
-available (build `world`/`distribution` for a full system, or use a Renux VM
-image). A `kernel=CONF` build alone produces a bootable kernel, but no root
-filesystem.
+Source Roadmap:
 
 Source Roadmap:
 ---------------
