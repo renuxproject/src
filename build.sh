@@ -1116,13 +1116,14 @@ run_qemu()
 		[ -f "${img}" ] || make_bios_iso
 		statusmsg "Starting QEMU (BIOS): ${img}"
 		if [ "${runcmd}" = echo ]; then
-			echo "qemu-system-x86_64 -cdrom ${img} -m ${QEMU_MEM:-1024} -display ${QEMU_DISPLAY:-default}"
+			echo "qemu-system-x86_64 -cdrom ${img} -m ${QEMU_MEM:-1024} -display ${QEMU_DISPLAY:-default} -serial ${QEMU_SERIAL:-stdio}"
 			return 0
 		fi
 		qemu-system-x86_64 -machine q35,accel=tcg \
 		    -m "${QEMU_MEM:-1024}" \
 		    -cdrom "${img}" -boot d \
-		    -display "${QEMU_DISPLAY:-default}" -no-reboot &
+		    -display "${QEMU_DISPLAY:-default}" \
+		    -serial "${QEMU_SERIAL:-stdio}" -no-reboot &
 		return 0
 	fi
 	img="${IMAGEDIR}/renux-uefi.img"
