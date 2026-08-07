@@ -1024,7 +1024,7 @@ make_boot_esp()
 # Renux UEFI boot configuration: boot to a root shell on the ESP.
 autoboot_delay="2"
 loader_logo="orb"			# orb logo (ball with spikes) + RENUX banner
-console="comconsole vidconsole"
+console="vidconsole"
 vfs.root.mountfrom="msdosfs:/dev/ada0p1"
 EOF
 
