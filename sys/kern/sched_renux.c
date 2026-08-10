@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: BSD-2-Clause
  *
  * Copyright (c) 2002-2007, Jeffrey Roberson <jeff@freebsd.org>
+ * Copyright (c) 2026 Renan Lucas Vieira Hilário
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,14 +34,22 @@
  * on uni-processor systems.
  *
  * Renux aggressive optimizations over ULE:
- *   - Stronger CPU affinity (SCHED_AFFINITY_DEFAULT hz/250 instead of
- *     hz/1000): threads stay on their last CPU longer, improving cache
- *     locality.
- *   - Longer time slices (SCHED_SLICE_DEFAULT_DIVISOR 6 instead of 10):
- *     fewer context switches, lower overhead.
- *   - always_steal=1, trysteal_limit=8, steal_thresh=1: idle CPUs steal
+ *   - Much stronger CPU affinity (SCHED_AFFINITY_DEFAULT hz/128 instead
+ *     of hz/1000): threads stay on their last CPU longer, maximizing
+ *     cache locality.
+ *   - Shorter time slices (SCHED_SLICE_DEFAULT_DIVISOR 5 instead of 10):
+ *     tighter scheduling latency and more responsive interactive work.
+ *   - always_steal=1, trysteal_limit=16, steal_thresh=1: idle CPUs steal
  *     work much more aggressively for better SMP parallelism.
- *   - More idle spinning (sched_idlespins) to reduce wakeup latency.
+ *   - More frequent load balancing (balance_interval = realstathz / 2)
+ *     to keep CPUs balanced under churn.
+ *   - Aggressive preemption: preempt_thresh defaults to PRI_MAX_INTERACT
+ *     on non-FULL_PREEMPTION builds, and remote CPUs are preempted by any
+ *     higher-priority timeshare thread, not just interactive ones.
+ *   - Much more idle spinning (sched_idlespins=250000) to cut wakeup
+ *     latency.
+ *   - Shorter interactivity history (SCHED_SLP_RUN_MAX of 3s) so thread
+ *     priorities adapt faster to changing behavior.
  *
  * The tunables are exposed under kern.sched.renux.*.
  */
@@ -213,17 +222,17 @@ _Static_assert(SCHED_CPU_DECAY_NUMER >= 0 && SCHED_CPU_DECAY_DENOM > 0 &&
  * INTERACT_MAX:	Maximum interactivity value.  Smaller is better.
  * INTERACT_THRESH:	Threshold for placement on the current runq.
  */
-#define	SCHED_SLP_RUN_MAX	((hz * 5) << SCHED_TICK_SHIFT)
-#define	SCHED_SLP_RUN_FORK	((hz / 2) << SCHED_TICK_SHIFT)
+#define	SCHED_SLP_RUN_MAX	((hz * 3) << SCHED_TICK_SHIFT)
+#define	SCHED_SLP_RUN_FORK	((hz / 3) << SCHED_TICK_SHIFT)
 #define	SCHED_INTERACT_MAX	(100)
 #define	SCHED_INTERACT_HALF	(SCHED_INTERACT_MAX / 2)
-#define	SCHED_INTERACT_THRESH	(30)
+#define	SCHED_INTERACT_THRESH	(40)
 
 /*
  * These parameters determine the slice behavior for batch work.
  */
-#define	SCHED_SLICE_DEFAULT_DIVISOR	6	/* ~94 ms, 12 stathz ticks. */
-#define	SCHED_SLICE_MIN_DIVISOR		6	/* DEFAULT/MIN = ~16 ms. */
+#define	SCHED_SLICE_DEFAULT_DIVISOR	5	/* ~75 ms, 10 stathz ticks. */
+#define	SCHED_SLICE_MIN_DIVISOR		4	/* DEFAULT/MIN = ~19 ms. */
 
 /* Flags kept in td_flags. */
 #define	TDF_PICKCPU	TDF_SCHED0	/* Thread should pick new CPU. */
@@ -246,13 +255,13 @@ static int __read_mostly sched_slice_min = 1;	/* reset during boot. */
 #ifdef FULL_PREEMPTION
 static int __read_mostly preempt_thresh = PRI_MAX_IDLE;
 #else
-static int __read_mostly preempt_thresh = PRI_MIN_KERN;
+static int __read_mostly preempt_thresh = PRI_MAX_INTERACT;
 #endif
 #else 
 static int __read_mostly preempt_thresh = 0;
 #endif
 static int __read_mostly static_boost = PRI_MIN_BATCH;
-static int __read_mostly sched_idlespins = 100000;
+static int __read_mostly sched_idlespins = 250000;
 static int __read_mostly sched_idlespinthresh = -1;
 
 /*
@@ -313,7 +322,7 @@ struct tdq {
 
 #ifdef SMP
 
-#define	SCHED_AFFINITY_DEFAULT	(max(1, hz / 250))
+#define	SCHED_AFFINITY_DEFAULT	(max(1, hz / 128))
 /*
  * This inequality has to be written with a positive difference of ticks to
  * correctly handle wraparound.
@@ -329,7 +338,7 @@ static int __read_mostly affinity;
 static int __read_mostly steal_idle = 1;
 static int __read_mostly steal_thresh = 1;
 static int __read_mostly always_steal = 1;
-static int __read_mostly trysteal_limit = 8;
+static int __read_mostly trysteal_limit = 16;
 
 /*
  * One thread queue per processor.
@@ -484,10 +493,12 @@ sched_shouldpreempt(int pri, int cpri, int remote)
 	if (pri <= preempt_thresh)
 		return (1);
 	/*
-	 * If we're interactive or better and there is non-interactive
-	 * or worse running preempt only remote processors.
+	 * If we're strictly better than a non-interactive (batch) thread
+	 * running on a remote processor, preempt it.  Unlike ULE this is
+	 * not limited to interactive threads: any higher-priority timeshare
+	 * thread grabs the CPU immediately for lower latency under load.
 	 */
-	if (remote && pri <= PRI_MAX_INTERACT && cpri > PRI_MAX_INTERACT)
+	if (remote && pri <= PRI_MAX_BATCH && cpri > PRI_MAX_INTERACT)
 		return (1);
 	return (0);
 }
@@ -1664,7 +1675,7 @@ sched_renux_initticks(void)
 	 * Set the default balance interval now that we know
 	 * what realstathz is.
 	 */
-	balance_interval = realstathz;
+	balance_interval = max(1, realstathz / 2);
 	balance_ticks = balance_interval;
 	affinity = SCHED_AFFINITY_DEFAULT;
 #endif
