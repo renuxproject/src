@@ -3859,7 +3859,8 @@ kern/kern_lock.c		standard
 kern/kern_lockf.c		standard
 kern/kern_lockstat.c		optional kdtrace_hooks
 kern/kern_loginclass.c		standard
-kern/kern_malloc.c		standard
+kern/kern_malloc.c		optional !renux_malloc
+kern/renux_kern_malloc.c	optional renux_malloc
 kern/kern_mbuf.c		standard
 kern/kern_membarrier.c		standard
 kern/kern_mib.c			standard
