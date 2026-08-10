@@ -14,7 +14,7 @@ LOCALEDEF_ENDIAN= -l
 TARGET_ENDIANNESS= 4321
 CAP_MKDB_ENDIAN= -b
 LOCALEDEF_ENDIAN= -b
-.elif ${.MAKE.OS} == "FreeBSD"
+.elif ${.MAKE.OS} == "FreeBSD" || ${.MAKE.OS} == "Renux"
 .error Don't know the endian of this architecture
 .else
 #

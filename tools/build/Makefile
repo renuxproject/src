@@ -213,7 +213,7 @@ SYSINCS+=	${SRCTOP}/sys/sys/nlist_aout.h
 INCS+=	${SRCTOP}/include/bitstring.h
 SYSINCS+=	${SRCTOP}/sys/sys/bitstring.h
 
-.if ${.MAKE.OS} != "FreeBSD"
+.if ${.MAKE.OS} != "FreeBSD" && ${.MAKE.OS} != "Renux"
 .PATH: ${.CURDIR}/cross-build
 
 # Needed by our sys/types.h wrapper
@@ -309,7 +309,7 @@ SYSINCS+=	${SRCTOP}/sys/sys/_callout.h
 SYSINCS+=	${SRCTOP}/sys/sys/_lock.h
 SYSINCS+=	${SRCTOP}/sys/sys/_lockmgr.h
 SYSINCS+=	${SRCTOP}/sys/sys/_task.h
-.endif # ${MAKE.OS} != "FreeBSD"
+.endif # ${MAKE.OS} != "FreeBSD" && ${.MAKE.OS} != "Renux"
 
 CASPERINC+=	${SRCTOP}/lib/libcasper/services/cap_fileargs/cap_fileargs.h
 CASPERINC+=	${SRCTOP}/lib/libcasper/services/cap_net/cap_net.h
@@ -380,7 +380,7 @@ MSDOSFSINCS+=	${SRCTOP}/sys/fs/msdosfs/fat.h
 MSDOSFSINCS+=	${SRCTOP}/sys/fs/msdosfs/msdosfsmount.h
 DISKINCS+=	${SRCTOP}/sys/sys/disk/bsd.h
 
-.if ${.MAKE.OS} == "FreeBSD"
+.if ${.MAKE.OS} == "FreeBSD" || ${.MAKE.OS} == "Renux"
 # Needed to build most of the things below, which include sys/cdefs.h either
 # directly or transitively
 SYSINCS+=	${SRCTOP}/sys/sys/_visible.h
@@ -444,7 +444,7 @@ _host_abs_tools_to_symlink=	${_make_abs}:make ${_make_abs}:bmake
 
 _LINK_HOST_TOOL=	ln -sfn
 
-.if ${.MAKE.OS} == "FreeBSD"
+.if ${.MAKE.OS} == "FreeBSD" || ${.MAKE.OS} == "Renux"
 # When building on FreeBSD we always copy the host tools instead of linking
 # into WORLDTMP to avoid issues with incompatible libraries (see r364030).
 # Note: we could create links if we don't intend to update the current machine.
@@ -477,7 +477,7 @@ _host_tools_to_symlink:=	${_host_tools_to_symlink:Nsh}
 # Remove this hack and just use a symlink once Clang 13 can be assumed.
 # For consistency, we use the same strategy for LD.
 .include <bsd.compiler.mk>
-.if ${.MAKE.OS} == "FreeBSD" && ${COMPILER_TYPE} == "clang" && \
+.if (${.MAKE.OS} == "FreeBSD" || ${.MAKE.OS} == "Renux") && ${COMPILER_TYPE} == "clang" && \
     ${COMPILER_VERSION} < 130000
 _WRAP_HOST_TOOL=	sh -c "printf '\#!/bin/sh\nexec \"\%s\" \"\$$@\"\n' \"\$$0\" > \"\$$1\" && chmod +x \"\$$1\""
 .else

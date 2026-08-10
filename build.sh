@@ -967,13 +967,14 @@ find_cdboot()
 	return 1
 }
 
-# True on the BSDs (FreeBSD/NetBSD/OpenBSD/DragonFly), whose base system
-# ships makefs/gpart/newfs_msdos instead of the Linux mkfs.fat/sfdisk/xorriso.
+# True on the BSDs (FreeBSD/NetBSD/OpenBSD/DragonFly) and their forks such as
+# Renux, whose base system ships makefs/gpart/newfs_msdos instead of the Linux
+# mkfs.fat/sfdisk/xorriso.
 host_os="$(uname -s 2>/dev/null)"
 is_bsd()
 {
 	case "${host_os}" in
-	FreeBSD|NetBSD|OpenBSD|DragonFly) return 0 ;;
+	FreeBSD|Renux|NetBSD|OpenBSD|DragonFly) return 0 ;;
 	*) return 1 ;;
 	esac
 }

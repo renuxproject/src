@@ -8,7 +8,7 @@ buildenv: .PHONY .NOTMAIN
 .endif
 
 .if ${MACHINE:Nhost*} == ""
-.if ${.MAKE.OS} != "FreeBSD"
+.if ${.MAKE.OS} != "FreeBSD" && ${.MAKE.OS} != "Renux"
 # these won't work anyway - see tools/build/mk/Makefile.boot.pre
 MK_DEBUG_FILES= no
 MK_MAN= no
