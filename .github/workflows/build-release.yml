@@ -49,6 +49,10 @@ jobs:
           mkdir -p ../build
           echo "MAKEOBJDIRPREFIX=${PWD%/*}/build" >> "$GITHUB_ENV"
           echo "NPROC=$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 2)" >> "$GITHUB_ENV"
+          # Use clang for the host bootstrap tools too (not just the cross toolchain).
+          echo "CC=clang"      >> "$GITHUB_ENV"
+          echo "CXX=clang++"   >> "$GITHUB_ENV"
+          echo "CPP=clang-cpp" >> "$GITHUB_ENV"
 
       - name: Build world, kernel and bootable ISO images
         run: ./build.sh -j "$NPROC" -I release build iso
