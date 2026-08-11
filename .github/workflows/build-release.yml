@@ -1,0 +1,85 @@
+name: Build Renux ISO & Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 0.1.0). Leave empty for a snapshot release.'
+        required: false
+        default: ''
+      publish:
+        description: 'Publish a GitHub Release'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-iso-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Renux ISO (buildworld + buildkernel)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update --quiet || true
+          sudo apt-get -yq --no-install-suggests --no-install-recommends install \
+            bmake libarchive-dev clang lld dosfstools mtools xorriso
+
+      - name: Create build environment
+        run: |
+          mkdir -p ../build
+          echo "MAKEOBJDIRPREFIX=${PWD%/*}/build" >> "$GITHUB_ENV"
+          echo "NPROC=$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 2)" >> "$GITHUB_ENV"
+
+      - name: Build world and kernel
+        run: ./build.sh -j "$NPROC" build
+
+      - name: Build bootable ISO images
+        run: ./build.sh -j "$NPROC" -I release iso
+
+      - name: List artifacts
+        run: ls -lh release/
+
+      - name: Upload ISO artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: renux-iso
+          path: |
+            release/renux-uefi.iso
+            release/renux-bios.iso
+            release/renux-uefi.img
+          if-no-files-found: error
+
+      - name: Set release tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ inputs.version }}" ]; then
+            echo "value=v${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=snapshot-$(date +%Y%m%d-%H%M)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish GitHub Release
+        if: github.event_name == 'push' || inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.tag.outputs.value }}" \
+            release/renux-uefi.iso release/renux-bios.iso release/renux-uefi.img \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Renux ${{ steps.tag.outputs.value }}" \
+            --generate-notes
