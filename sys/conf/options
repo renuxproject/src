@@ -202,6 +202,8 @@ PPS_SYNC	opt_ntp.h
 PREEMPTION	opt_sched.h
 QUOTA
 RENUX_MALLOC	opt_renux_malloc.h
+RENUX_VFS_CLUSTER	opt_renux_vfs.h
+RENUX_VFS_SUBR	opt_renux_vfs.h
 SCHED_4BSD	opt_sched.h
 SCHED_RENUX	opt_sched.h
 SCHED_STATS	opt_sched.h

@@ -25,6 +25,8 @@ makeoptions	WITH_CTF=1		# Run ctfconvert(1) for DTrace support
 
 options 	SCHED_RENUX		# Renux scheduler (ULE-derived, aggressive)
 options 	RENUX_MALLOC		# Renux malloc (kern_malloc fork, lock-free stats)
+options 	RENUX_VFS_CLUSTER	# Renux vfs_cluster (aggressive read-ahead)
+options 	RENUX_VFS_SUBR		# Renux vfs_subr (larger vnode cache)
 options 	NUMA			# Non-Uniform Memory Architecture support
 options 	PREEMPTION		# Enable kernel thread preemption
 options 	FULL_PREEMPTION		# Preempt all threads, not just kernel threads
