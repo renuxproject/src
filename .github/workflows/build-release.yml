@@ -55,7 +55,19 @@ jobs:
           echo "CPP=clang-cpp" >> "$GITHUB_ENV"
 
       - name: Build world, kernel and bootable ISO images
-        run: ./build.sh -j "$NPROC" -I release build iso
+        run: |
+          set -o pipefail
+          for attempt in 1 2 3 4; do
+            echo "::group::build attempt ${attempt}"
+            if ./build.sh -j "$NPROC" -I release build iso; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "attempt ${attempt} failed (flaky parallel bootstrap); retrying"
+          done
+          echo "build failed after 4 attempts"
+          exit 1
 
       - name: List artifacts
         run: ls -lh release/
