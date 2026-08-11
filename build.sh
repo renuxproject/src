@@ -1370,7 +1370,10 @@ main()
 	if [ "$did" = true ]
 	then
 		statusmsg "Command: ${cmd}"
-		run_make_py_retry "${cmd}"
+		if ! run_make_py_retry "${cmd}"
+		then
+			bomb "make.py build command failed"
+		fi
 	fi
 
 	if [ "${do_image}" = true ]

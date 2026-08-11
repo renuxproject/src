@@ -38,9 +38,10 @@ jobs:
             bmake libarchive-dev clang-18 lld-18 dosfstools mtools xorriso
           # Make clang/lld the default compilers so build.sh and make.py
           # cross-build with clang instead of gcc.
-          sudo ln -sf "$(command -v clang-18)"   /usr/local/bin/clang
-          sudo ln -sf "$(command -v clang++-18)" /usr/local/bin/clang++
-          sudo ln -sf "$(command -v ld.lld-18)"  /usr/local/bin/ld.lld
+          sudo ln -sf "$(command -v clang-18)"     /usr/local/bin/clang
+          sudo ln -sf "$(command -v clang++-18)"   /usr/local/bin/clang++
+          sudo ln -sf "$(command -v clang-cpp-18)" /usr/local/bin/clang-cpp
+          sudo ln -sf "$(command -v ld.lld-18)"    /usr/local/bin/ld.lld
           clang --version | head -1
 
       - name: Create build environment
@@ -49,11 +50,8 @@ jobs:
           echo "MAKEOBJDIRPREFIX=${PWD%/*}/build" >> "$GITHUB_ENV"
           echo "NPROC=$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 2)" >> "$GITHUB_ENV"
 
-      - name: Build world and kernel
-        run: ./build.sh -j "$NPROC" build
-
-      - name: Build bootable ISO images
-        run: ./build.sh -j "$NPROC" -I release iso
+      - name: Build world, kernel and bootable ISO images
+        run: ./build.sh -j "$NPROC" -I release build iso
 
       - name: List artifacts
         run: ls -lh release/
