@@ -31,11 +31,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Install build dependencies (clang toolchain)
         run: |
           sudo apt-get update --quiet || true
           sudo apt-get -yq --no-install-suggests --no-install-recommends install \
-            bmake libarchive-dev clang lld dosfstools mtools xorriso
+            bmake libarchive-dev clang-18 lld-18 dosfstools mtools xorriso
+          # Make clang/lld the default compilers so build.sh and make.py
+          # cross-build with clang instead of gcc.
+          sudo ln -sf "$(command -v clang-18)"   /usr/local/bin/clang
+          sudo ln -sf "$(command -v clang++-18)" /usr/local/bin/clang++
+          sudo ln -sf "$(command -v ld.lld-18)"  /usr/local/bin/ld.lld
+          clang --version | head -1
 
       - name: Create build environment
         run: |
