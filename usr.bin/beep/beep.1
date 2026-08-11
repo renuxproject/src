@@ -1,0 +1,85 @@
+.\"-
+.\" Copyright (c) 2021 Hans Petter Selasky <hselasky@FreeBSD.org>
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+.\" IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+.\" OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+.\" IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+.\" INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+.\" NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+.\" DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+.\" THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+.\" (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+.\" THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+.\"
+.Dd November 19, 2025
+.Dt BEEP 1
+.Os
+.Sh NAME
+.Nm beep
+.Nd play a beep sound
+.Sh SYNOPSIS
+.Nm
+.Op Fl Bh
+.Op Fl D Ar duration_ms
+.Op Fl F Ar frequency_hz
+.Op Fl d Ar oss_device
+.Op Fl g Ar gain
+.Op Fl r Ar sample_rate_hz
+.Sh DESCRIPTION
+The
+.Nm
+utility is used to play a beep on the sound card.
+.Pp
+The options are as follows:
+.Bl -tag -width "-r sample_rate_hz"
+.It Fl B
+Runs the
+.Nm
+utility in the background.
+.It Fl D Ar duration_ms
+Sets the duration of the beep in milliseconds,
+between 50\~ms and 2000\~ms inclusively.
+The default is 150\~ms.
+.It Fl F Ar frequency_hz
+Sets the center frequency of the beep in Hz.
+The default is 440\~Hz.
+.It Fl d Ar oss_device
+Sets the OSS device to use.
+The default is
+.Pa /dev/dsp .
+.It Fl g Ar gain
+Sets the waveform gain, between 0 and 100 inclusively.
+The default is 75.
+.It Fl h
+Display summary of options.
+.It Fl r Ar sample_rate_hz
+Sets the sound card sample rate in Hz,
+between 8000\~Hz and 48000\~Hz inclusively.
+The default is 48000\~Hz.
+.El
+.Sh EXAMPLES
+Play default beep sound on
+.Pa /dev/dsp :
+.Bl -tag -width Ds -offset indent
+.It $ beep
+.El
+.Sh SEE ALSO
+.Xr mixer 3 ,
+.Xr sound 4
+.Sh HISTORY
+The
+.Nm
+utility first appeared in
+.Fx 14.0 .
+.Sh AUTHORS
+.An Hans Petter Selasky Aq Mt hselasky@FreeBSD.org

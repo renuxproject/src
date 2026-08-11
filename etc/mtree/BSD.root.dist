@@ -1,0 +1,147 @@
+#
+# Please see the file src/etc/mtree/README before making changes to this file.
+#
+
+/set type=dir uname=root gname=wheel mode=0755
+.
+    bin     tags=package=runtime
+    ..
+/set tags=package=bootloader
+    boot
+        defaults
+        ..
+        dtb
+            allwinner       tags=package=runtime
+            ..
+            overlays        tags=package=runtime
+            ..
+            rockchip        tags=package=runtime
+            ..
+        ..
+        efi
+        ..
+        firmware
+        ..
+        fonts
+        ..
+        images
+        ..
+        kernel
+        ..
+        loader.conf.d
+        ..
+        lua
+        ..
+        modules
+        ..
+        uboot
+        ..
+        zfs
+        ..
+    ..
+/unset tags
+    dev             mode=0555 tags=package=runtime
+    ..
+    etc                 tags=package=runtime
+        X11             tags=package=runtime
+        ..
+        authpf          tags=package=pf
+        ..
+        autofs          tags=package=autofs
+        ..
+        bluetooth       tags=package=bluetooth
+        ..
+        cron.d          tags=package=cron
+        ..
+        defaults        tags=package=runtime
+        ..
+        devd            tags=package=devd
+        ..
+        dma             tags=package=dma
+        ..
+        gss             tags=package=runtime
+        ..
+        jail.conf.d     tags=package=jail
+        ..
+        kyua            tags=package=kyua
+        ..
+        mail            tags=package=runtime
+        ..
+        mtree           tags=package=mtree
+        ..
+        newsyslog.conf.d tags=package=newsyslog
+        ..
+        ntp             mode=0700 tags=package=ntp
+        ..
+        pam.d           tags=package=runtime
+        ..
+        periodic        tags=package=periodic
+            daily       tags=package=periodic
+            ..
+            monthly     tags=package=periodic
+            ..
+            security    tags=package=periodic
+            ..
+            weekly      tags=package=periodic
+            ..
+        ..
+        pkg             tags=package=pkg-bootstrap
+        ..
+        ppp             tags=package=ppp
+        ..
+        profile.d       tags=package=runtime
+        ..
+        rc.conf.d       tags=package=rc
+        ..
+        rc.d            tags=package=rc
+        ..
+        security        tags=package=audit
+        ..
+        ssh             tags=package=ssh
+        ..
+        ssl             tags=package=caroot
+            certs		tags=package=caroot
+            ..
+            untrusted		tags=package=caroot
+            ..
+        ..
+        sysctl.kld.d    tags=package=rc
+        ..
+        syslog.d        tags=package=syslogd
+        ..
+        zfs                     tags=package=zfs
+            compatibility.d     tags=package=zfs
+            ..
+        ..
+    ..
+    lib                 tags=package=clibs
+        geom            tags=package=geom
+        ..
+        nvmecontrol     tags=package=nvme-tools
+        ..
+    ..
+    libexec             tags=package=clibs
+        resolvconf      tags=package=resolvconf
+        ..
+    ..
+    media           tags=package=runtime
+    ..
+    mnt             tags=package=runtime
+    ..
+    net             tags=package=autofs
+    ..
+    proc            mode=0555 tags=package=runtime
+    ..
+    rescue          tags=package=rescue
+    ..
+    root            mode=0750 tags=package=runtime
+    ..
+    sbin            tags=package=runtime
+    ..
+    tmp             mode=01777 tags=package=runtime
+    ..
+    usr             tags=package=runtime
+    ..
+    var             tags=package=runtime
+    ..
+..

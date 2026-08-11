@@ -1,0 +1,333 @@
+.\"
+.\" Copyright (c) 2021-2026 The FreeBSD Foundation
+.\"
+.\" This documentation was written by Bj\xc3\xb6rn Zeeb under sponsorship from
+.\" the FreeBSD Foundation.
+.\"
+.\" SPDX-License-Identifier: BSD-2-Clause
+.\"
+.Dd May 15, 2026
+.Dt IWLWIFI 4
+.Os
+.Sh NAME
+.Nm iwlwifi
+.Nd Intel IEEE 802.11a/b/g/n/ac/ax/be wireless network driver
+.Sh SYNOPSIS
+The driver will auto-load without any user interaction using
+.Xr devmatch 8
+if enabled in
+.Xr rc.conf 5 .
+.Pp
+Only if auto-loading is explicitly disabled, place the following
+lines in
+.Xr rc.conf 5
+to manually load the driver as a module at boot time:
+.Bd -literal -offset indent
+kld_list="${kld_list} if_iwlwifi"
+.Ed
+.Pp
+The driver should automatically load any
+.Xr iwlwififw 4
+firmware needed for the particular chipset.
+See section
+.Sx "FILES"
+below for how to install the firmware.
+.Pp
+It is not possible to load the driver from
+.Xr loader 8 .
+.Sh DESCRIPTION
+The
+.Nm
+driver provides support for Intel Wireless network devices.
+.Pp
+.Nm
+is derived from Intel's Linux iwlwifi driver based on Linux version 7.0.
+The
+.Xr iwm 4
+and
+.Xr iwx 4
+drivers together are approximately equivalent to Intel's Linux iwlwifi/mvm
+driver.
+.Pp
+In addition
+.Nm
+supports the chipsets based on Intel's Linux iwlwifi/mld driver.
+.Pp
+.Nm
+still complements the
+.Xr iwn 4
+driver which supports older chipsets and would be equivalent to
+Intel's Linux iwlwifi/dvm, which
+.Nm
+does not support.
+.Pp
+The driver uses the
+.Xr linuxkpi_wlan 4
+and
+.Xr linuxkpi 4
+compat framework to bridge between the Linux and
+native
+.Fx
+driver code as well as to the native
+.Xr net80211 4
+wireless stack.
+.Sh HARDWARE
+The
+.Nm
+driver supports PCIe devices from the
+.Sy mvm
+sub-driver with the following chipset generations:
+.Pp
+.\" awk -F\\t '{ print $5 }' ~/tmp/iwlwifi_pci_ids_name.txt | \
+.\" grep -v undefined | sort -V | uniq | grep -v ^$ | \
+.\" awk '{ printf ".It\n%s\n", $0 }'
+.Bl -bullet -compact
+.It
+7000
+.It
+8000
+.It
+9000
+.It
+22000
+.It
+AX210
+.El
+.Pp
+The
+.Nm
+driver supports PCIe devices from the
+.Sy mld
+sub-driver with the following chipset generations:
+.Pp
+.Bl -bullet -compact
+.It
+BZ
+.It
+SC
+.El
+.Pp
+These chipset generations match the following common device names:
+.Pp
+.Bl -bullet -compact
+.\" --------------------------------------------------------------------
+.\" This list is manually generated from a sysctl and post-processing.
+.\" Edits will be overwritten on next update.
+.\" awk -F\\t '{ if ($2 == "") { next; } if (seen[$2]) { next; } \
+.\" seen[$2]=1; printf ".It\n%s\n", $2; }' iwlwifi_pci_ids_name.txt
+.\" --------------------------------------------------------------------
+.It
+Intel(R) Dual Band Wireless AC 7260
+.It
+Intel(R) Dual Band Wireless N 7260
+.It
+Intel(R) Wireless N 7260
+.It
+Intel(R) Dual Band Wireless AC 3160
+.It
+Intel(R) Wireless N 3160
+.It
+Intel(R) Dual Band Wireless N 3160
+.It
+Intel(R) Dual Band Wireless-AC 3165
+.It
+Intel(R) Dual Band Wireless-AC 3168
+.It
+Intel(R) Dual Band Wireless-AC 7265
+.It
+Intel(R) Dual Band Wireless-N 7265
+.It
+Intel(R) Wireless-N 7265
+.It
+Intel(R) Dual Band Wireless-AC 8260
+.It
+Intel(R) Dual Band Wireless-N 8260
+.It
+Intel(R) Dual Band Wireless-AC 4165
+.It
+Intel(R) Dual Band Wireless-AC 8265
+.It
+Intel(R) Dual Band Wireless-AC 8275
+.It
+Killer(R) Wireless-AC 1435i Wireless Network Adapter (8265D2W)
+.It
+Killer(R) Wireless-AC 1435-KIX Wireless Network Adapter (8265NGW)
+.It
+Intel(R) Wireless-AC 9461 160MHz
+.It
+Intel(R) Wireless-AC 9461
+.It
+Intel(R) Wireless-AC 9462 160MHz
+.It
+Intel(R) Wireless-AC 9462
+.It
+Intel(R) Wireless-AC 9260 160MHz
+.It
+Intel(R) Wireless-AC 9260
+.It
+Intel(R) Wireless-AC 9560 160MHz
+.It
+Intel(R) Wireless-AC 9560
+.It
+Intel(R) Wi-Fi 6 AX201 160MHz
+.It
+Intel(R) Wi-Fi 6 AX101
+.It
+Intel(R) Wi-Fi 6 AX203
+.It
+Intel(R) Wi-Fi 6 AX200 160MHz
+.It
+Intel(R) Wi-Fi 6E AX211 160MHz
+.It
+Intel(R) Wi-Fi 6E AX411 160MHz
+.It
+Intel(R) Wi-Fi 6E AX210 160MHz
+.It
+Killer(R) Wireless-AC 1550 Wireless Network Adapter (9260NGW) 160MHz
+.It
+Killer(R) Wireless-AC 1550s Wireless Network Adapter (9560D2W) 160MHz
+.It
+Killer(R) Wireless-AC 1550i Wireless Network Adapter (9560NGW) 160MHz
+.It
+Killer(R) Wi-Fi 6 AX1650s 160MHz Wireless Network Adapter (201D2W)
+.It
+Killer(R) Wi-Fi 6 AX1650i 160MHz Wireless Network Adapter (201NGW)
+.It
+Killer(R) Wi-Fi 6E AX1675s 160MHz Wireless Network Adapter (211D2W)
+.It
+Killer(R) Wi-Fi 6E AX1675i 160MHz Wireless Network Adapter (211NGW)
+.It
+Killer(R) Wi-Fi 6E AX1675w 160MHz Wireless Network Adapter (210D2W)
+.It
+Killer(R) Wi-Fi 6E AX1675x 160MHz Wireless Network Adapter (210NGW)
+.It
+Killer(R) Wi-Fi 6E AX1690s 160MHz Wireless Network Adapter (411D2W)
+.It
+Killer(R) Wi-Fi 6E AX1690i 160MHz Wireless Network Adapter (411NGW)
+.It
+Killer(R) Wi-Fi 6 AX1650w 160MHz Wireless Network Adapter (200D2W)
+.It
+Killer(R) Wi-Fi 6 AX1650x 160MHz Wireless Network Adapter (200NGW)
+.It
+Intel(R) Wi-Fi 7 BE201 320MHz
+.It
+Intel(R) Wi-Fi 7 BE401 320MHz
+.It
+Intel(R) Wi-Fi 7 BE200 320MHz
+.It
+Intel(R) Wi-Fi 7 BE202 160MHz
+.It
+Killer(R) Wi-Fi 7 BE1750s 320MHz Wireless Network Adapter (BE201D2W)
+.It
+Killer(R) Wi-Fi 7 BE1750i 320MHz Wireless Network Adapter (BE201NGW)
+.It
+Killer(R) Wi-Fi 7 BE1790s 320MHz Wireless Network Adapter (BE401D2W)
+.It
+Killer(R) Wi-Fi 7 BE1790i 320MHz Wireless Network Adapter (BE401NGW)
+.It
+Killer(TM) Wi-Fi 7 BE1750w 320MHz Wireless Network Adapter (BE200D2W)
+.It
+Killer(TM) Wi-Fi 7 BE1750x 320MHz Wireless Network Adapter (BE200NGW)
+.It
+Intel(R) Wi-Fi 7 BE211 320MHz
+.It
+Intel(R) Wi-Fi 6E AX221 160MHz
+.It
+Intel(R) Wi-Fi 7 BE213 160MHz
+.It
+Intel(R) Wi-Fi 8 BN201
+.It
+Intel(R) Wi-Fi 7 BE223
+.It
+Intel(R) Wi-Fi 8 BN203
+.It
+Killer(R) Wi-Fi 7 BE1775s 320MHz Wireless Network Adapter (BE211D2W)
+.It
+Killer(R) Wi-Fi 7 BE1775i 320MHz Wireless Network Adapter (BE211NGW)
+.It
+Killer(R) Wi-Fi 8 BN1850w2 320MHz Wireless Network Adapter (BN201.D2W)
+.It
+Killer(R) Wi-Fi 8 BN1850i 320MHz Wireless Network Adapter (BN201.NGW)
+.\" --------------------------------------------------------------------
+.El
+.Sh LOADER TUNABLES
+The
+.Nm
+driver supports the following
+.Xr loader 8
+tunable and read-only
+.Xr sysctl 8
+variables:
+.Bl -tag -width "compat.linuxkpi.iwlwifi_disable_11ac"
+.It Va compat.linuxkpi.iwlwifi_11n_disable
+Turn off 802.11n support in the driver.
+Default
+.Ql 1 .
+.It Va compat.linuxkpi.iwlwifi_disable_11ac
+Turn off 802.11ac support in the driver.
+Default
+.Ql 1 .
+.El
+.Pp
+The names of the tunables are derived from the Linux iwlwifi driver
+module parameters and are mapped automatically by
+.Sy linuxkpi .
+They were not adjusted so that they stay consistent with upstream
+Linux, e.g., for documentation available and problem investigations.
+This left their names inconsistent between themselves and inconsistent to
+.Fx
+style.
+.Pp
+The tunables are automatically adjusted by the firmware package for
+chipsets which can enable 11n and 11ac.
+In case of problems a user may want to override the provided values
+in
+.Pa /boot/loader.conf.local
+with the above defaults.
+.Sh FILES
+The
+.Nm
+driver requires firmware from
+.Pa ports/net/wifi-firmware-iwlwifi-kmod .
+This firmware package will be installed automatically with
+.Xr fwget 8
+if the appropriate hardware is detected at installation or runtime.
+.Pp
+As a last resort for bootstrapping, individual firmware files can be
+manually downloaded, e.g., on a different computer and transferred using a
+.Xr umass 4
+device.
+The firmware files can be found at
+.Lk git://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
+with names as requested by the driver.
+Copies should be placed into the
+.Pa /boot/firmware
+directory.
+.Sh SEE ALSO
+.Xr iwlwififw 4 ,
+.Xr iwm 4 ,
+.Xr iwn 4 ,
+.Xr iwx 4 ,
+.Xr linuxkpi 4,
+.Xr linuxkpi_wlan 4,
+.Xr wlan 4 ,
+.Xr networking 7 ,
+.Xr fwget 8 ,
+.Xr ifconfig 8 ,
+.Xr wpa_supplicant 8
+.Sh HISTORY
+The
+.Nm
+driver first appeared in
+.Fx 13.1 .
+802.11n and 802.11ac support for the 22000 and later chipsets first appeared in
+.Fx 14.3 .
+.Sh BUGS
+.Lk https://bugs.freebsd.org/bugzilla/showdependencytree.cgi?id=iwlwifi "iwlwifi known bugs"
+.Pp
+While
+.Nm
+supports 802.11a/b/g/n/ac/ax/be modes,
+the compatibility code currently only supports 802.11a/b/g/n/ac modes.
+802.11n/ac is only available on the 22000 and later chipset generations.
+802.11ax/be and 6Ghz support are planned.
