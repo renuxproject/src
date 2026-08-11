@@ -1309,7 +1309,8 @@ main()
 				did=true; have_kernel=true
 				cmd="${cmd} KERNCONF=${KERNCONF:-${KERNCONF_DEFAULT}} WERROR= kernel-toolchain buildkernel"
 			else
-				did=true; cmd="${cmd} buildworld buildkernel"
+				did=true; have_kernel=true
+				cmd="${cmd} buildworld buildkernel"
 			fi
 			;;
 		world|distribution|release)
