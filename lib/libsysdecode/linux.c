@@ -38,7 +38,7 @@
 #elif __i386__
 #include <i386/linux/linux.h>
 #elif __amd64__
-#include <amd64/linux/linux.h>
+#include <arch/amd64/linux/linux.h>
 #else
 #error "Unsupported Linux arch"
 #endif

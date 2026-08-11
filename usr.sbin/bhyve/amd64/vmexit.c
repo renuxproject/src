@@ -31,7 +31,7 @@
 #include <machine/vmm.h>
 #include <machine/vmm_dev.h>
 #include <machine/vmm_instruction_emul.h>
-#include <amd64/vmm/intel/vmcs.h>
+#include <arch/amd64/vmm/intel/vmcs.h>
 #include <x86/apicreg.h>
 
 #include <assert.h>

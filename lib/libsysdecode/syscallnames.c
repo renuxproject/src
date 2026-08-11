@@ -51,7 +51,7 @@ static
 #ifdef __aarch64__
 #include <arm64/linux/linux_syscalls.c>
 #elif __amd64__
-#include <amd64/linux/linux_syscalls.c>
+#include <arch/amd64/linux/linux_syscalls.c>
 #else
 #include <i386/linux/linux_syscalls.c>
 #endif
@@ -59,7 +59,7 @@ static
 
 #ifdef __amd64__
 static
-#include <amd64/linux32/linux32_syscalls.c>
+#include <arch/amd64/linux32/linux32_syscalls.c>
 #endif
 
 const char *

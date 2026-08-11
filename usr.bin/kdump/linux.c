@@ -38,8 +38,8 @@
 #include "kdump.h"
 
 #ifdef __amd64__
-#include <amd64/linux/linux.h>
-#include <amd64/linux32/linux32_syscall.h>
+#include <arch/amd64/linux/linux.h>
+#include <arch/amd64/linux32/linux32_syscall.h>
 #elif __aarch64__
 #include <arm64/linux/linux.h>
 #elif __i386__
