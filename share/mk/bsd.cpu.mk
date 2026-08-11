@@ -8,7 +8,12 @@ _CPUCFLAGS =
 . if ${MACHINE_CPUARCH} == "aarch64"
 MACHINE_CPU = arm64
 . elif ${MACHINE_CPUARCH} == "amd64"
-MACHINE_CPU = amd64 sse2 sse mmx
+# Renux: default the amd64 baseline to x86-64-v2 (SSE3/SSE4.1/SSE4.2,
+# POPCNT, CMPXCHG16B) instead of the stock x86-64 v1 baseline for higher
+# performance out of the box.  Requires a v2-capable CPU (2009+).  The
+# kernel still adds -mno-mmx/-mno-sse, so SIMD stays disabled there.
+_CPUCFLAGS = -march=x86-64-v2
+MACHINE_CPU = amd64 sse42 sse41 ssse3 sse3 sse2 sse mmx
 . elif ${MACHINE_CPUARCH} == "arm"
 MACHINE_CPU = arm
 . elif ${MACHINE_CPUARCH} == "i386"
