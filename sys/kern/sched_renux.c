@@ -34,20 +34,20 @@
  * on uni-processor systems.
  *
  * Renux aggressive optimizations over ULE:
- *   - Much stronger CPU affinity (SCHED_AFFINITY_DEFAULT hz/128 instead
- *     of hz/1000): threads stay on their last CPU longer, maximizing
- *     cache locality.
- *   - Shorter time slices (SCHED_SLICE_DEFAULT_DIVISOR 5 instead of 10):
- *     tighter scheduling latency and more responsive interactive work.
- *   - always_steal=1, trysteal_limit=16, steal_thresh=1: idle CPUs steal
+ *   - Much stronger CPU affinity (SCHED_AFFINITY_DEFAULT hz/64 instead
+ *     of hz/1000): threads stay on their last CPU for longer, maximizing
+ *     cache locality and cutting migrations.
+ *   - Long time slices (SCHED_SLICE_DEFAULT_DIVISOR 6 instead of 10, with
+ *     the slice shrinking under load): fewer context switches, better
+ *     throughput for CPU-bound work.
+ *   - always_steal=1, trysteal_limit=32, steal_thresh=1: idle CPUs steal
  *     work much more aggressively for better SMP parallelism.
- *   - More frequent load balancing (balance_interval = realstathz / 2)
+ *   - Much more frequent load balancing (balance_interval = realstathz / 4)
  *     to keep CPUs balanced under churn.
  *   - Aggressive preemption: preempt_thresh defaults to PRI_MAX_INTERACT
  *     on non-FULL_PREEMPTION builds, and remote CPUs are preempted by any
  *     higher-priority timeshare thread, not just interactive ones.
- *   - Much more idle spinning (sched_idlespins=250000) to cut wakeup
- *     latency.
+ *   - Heavy idle spinning (sched_idlespins=500000) to cut wakeup latency.
  *   - Shorter interactivity history (SCHED_SLP_RUN_MAX of 3s) so thread
  *     priorities adapt faster to changing behavior.
  *
@@ -231,8 +231,8 @@ _Static_assert(SCHED_CPU_DECAY_NUMER >= 0 && SCHED_CPU_DECAY_DENOM > 0 &&
 /*
  * These parameters determine the slice behavior for batch work.
  */
-#define	SCHED_SLICE_DEFAULT_DIVISOR	5	/* ~75 ms, 10 stathz ticks. */
-#define	SCHED_SLICE_MIN_DIVISOR		4	/* DEFAULT/MIN = ~19 ms. */
+#define	SCHED_SLICE_DEFAULT_DIVISOR	6	/* ~21 stathz ticks. */
+#define	SCHED_SLICE_MIN_DIVISOR		4	/* ~5 stathz ticks minimum. */
 
 /* Flags kept in td_flags. */
 #define	TDF_PICKCPU	TDF_SCHED0	/* Thread should pick new CPU. */
@@ -261,7 +261,7 @@ static int __read_mostly preempt_thresh = PRI_MAX_INTERACT;
 static int __read_mostly preempt_thresh = 0;
 #endif
 static int __read_mostly static_boost = PRI_MIN_BATCH;
-static int __read_mostly sched_idlespins = 250000;
+static int __read_mostly sched_idlespins = 500000;
 static int __read_mostly sched_idlespinthresh = -1;
 
 /*
@@ -322,7 +322,7 @@ struct tdq {
 
 #ifdef SMP
 
-#define	SCHED_AFFINITY_DEFAULT	(max(1, hz / 128))
+#define	SCHED_AFFINITY_DEFAULT	(max(1, hz / 64))
 /*
  * This inequality has to be written with a positive difference of ticks to
  * correctly handle wraparound.
@@ -338,7 +338,7 @@ static int __read_mostly affinity;
 static int __read_mostly steal_idle = 1;
 static int __read_mostly steal_thresh = 1;
 static int __read_mostly always_steal = 1;
-static int __read_mostly trysteal_limit = 16;
+static int __read_mostly trysteal_limit = 32;
 
 /*
  * One thread queue per processor.
@@ -1675,7 +1675,7 @@ sched_renux_initticks(void)
 	 * Set the default balance interval now that we know
 	 * what realstathz is.
 	 */
-	balance_interval = max(1, realstathz / 2);
+	balance_interval = max(1, realstathz / 4);
 	balance_ticks = balance_interval;
 	affinity = SCHED_AFFINITY_DEFAULT;
 #endif
