@@ -27,6 +27,7 @@ options 	SCHED_RENUX		# Renux scheduler (ULE-derived, aggressive)
 options 	RENUX_MALLOC		# Renux malloc (kern_malloc fork, lock-free stats)
 options 	NUMA			# Non-Uniform Memory Architecture support
 options 	PREEMPTION		# Enable kernel thread preemption
+options 	FULL_PREEMPTION		# Preempt all threads, not just kernel threads
 options 	EXTERR_STRINGS
 options 	VIMAGE			# Subsystem virtualization, e.g. VNET
 options 	INET			# InterNETworking
