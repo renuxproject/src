@@ -26,9 +26,9 @@ SRCS+=	\
 	vga.c		\
 	xmsr.c
 
-.PATH:  ${BHYVE_SYSDIR}/sys/amd64/vmm
+.PATH:  ${BHYVE_SYSDIR}/sys/arch/amd64/vmm
 SRCS+=	vmm_instruction_emul.c
 
-CFLAGS.kernemu_dev.c+=	-I${SRCTOP}/sys/amd64
+CFLAGS.kernemu_dev.c+=	-I${SRCTOP}/sys/arch/amd64
 
 SUBDIR+=	kbdlayout

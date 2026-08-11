@@ -12,7 +12,7 @@ MAN=	bhyvectl.8
 
 LIBADD=	vmmapi util
 
-CFLAGS+= -I${.CURDIR} -I${SRCTOP}/sys/amd64/vmm
+CFLAGS+= -I${.CURDIR} -I${SRCTOP}/sys/arch/amd64/vmm
 
 .if ${MK_BHYVE_SNAPSHOT} != "no"
 LIBADD+= nv
