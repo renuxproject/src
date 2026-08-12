@@ -785,7 +785,7 @@ build_bios_loader()
 # needs, and a tiny /sbin/init that opens the console and runs sh.  This
 # avoids a full buildworld while still giving an interactive root shell.
 # ---------------------------------------------------------------------------
-BMK_ARGS="-DWITHOUT_CLEAN MK_WERROR=no MK_TESTS=no MK_MAN=no"
+BMK_ARGS="-DWITHOUT_CLEAN MK_WERROR=no MK_TESTS=no MK_MAN=no MK_SHARED=no"
 
 # Run bmake for the build host (host tools such as mknodes/make_keys).
 run_host_bmake()
@@ -845,15 +845,6 @@ build_mini_userland()
 		    -j "${njobs}" ${BMK_ARGS} DESTDIR="${tmp}" install ||
 		    bomb "libcompiler_rt install failed"
 	fi
-	if [ ! -f "${tmp}/usr/lib/libsys.a" ]; then
-		statusmsg "Building libsys"
-		run_cross "${BMAKE}" -C lib/libsys -m "${SRCDIR}/share/mk" \
-		    -j "${njobs}" ${BMK_ARGS} all ||
-		    bomb "libsys build failed"
-		run_cross "${BMAKE}" -C lib/libsys -m "${SRCDIR}/share/mk" \
-		    -j "${njobs}" ${BMK_ARGS} DESTDIR="${tmp}" install ||
-		    bomb "libsys install failed"
-	fi
 	if [ -d "${SRCDIR}/lib/libssp_nonshared" ] && \
 	    [ ! -f "${tmp}/usr/lib/libssp_nonshared.a" ]; then
 		statusmsg "Building libssp_nonshared"
@@ -874,6 +865,15 @@ build_mini_userland()
 		run_cross "${BMAKE}" -C lib/csu -m "${SRCDIR}/share/mk" \
 		    -j "${njobs}" ${BMK_ARGS} DESTDIR="${tmp}" install ||
 		    bomb "lib/csu install failed"
+	fi
+	if [ ! -f "${tmp}/usr/lib/libsys.a" ]; then
+		statusmsg "Building libsys"
+		run_cross "${BMAKE}" -C lib/libsys -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} all ||
+		    bomb "libsys build failed"
+		run_cross "${BMAKE}" -C lib/libsys -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} DESTDIR="${tmp}" install ||
+		    bomb "libsys install failed"
 	fi
 
 	# 3. libc
