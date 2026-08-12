@@ -785,7 +785,7 @@ build_bios_loader()
 # needs, and a tiny /sbin/init that opens the console and runs sh.  This
 # avoids a full buildworld while still giving an interactive root shell.
 # ---------------------------------------------------------------------------
-BMK_ARGS="-DWITHOUT_CLEAN MK_WERROR=no MK_TESTS=no MK_MAN=no MK_SHARED=no"
+BMK_ARGS="-DWITHOUT_CLEAN MK_WERROR=no MK_TESTS=no MK_MAN=no -DNO_PIC -DNO_SHARED"
 
 # Run bmake for the build host (host tools such as mknodes/make_keys).
 run_host_bmake()
@@ -832,6 +832,11 @@ build_mini_userland()
 	fi
 
 	ensure_libgcc_stub
+
+	# The mini-userland is fully static; drop any stale shared objects
+	# (e.g. a leftover libc.so linker script) that would otherwise confuse
+	# linking, especially when resuming from a cached object tree.
+	rm -f "${tmp}/usr/lib"/*.so* 2>/dev/null || :
 
 	# 2. libc prerequisites (compiler-rt + syscall lib) -- these are part of
 	# the world _prereq_libs stage, so the kernel-only path must build them
