@@ -1085,7 +1085,7 @@ make_boot_esp()
 # Root is found via the FAT volume label (RENUX), so it works on any
 # disk/controller regardless of the device name (ada0p1, da0p1, nvme...).
 autoboot_delay="2"
-loader_logo="orb"			# orb logo (ball with spikes) + RENUX banner
+loader_logo="renux"			# Renux wordmark logo (gfx-renux.lua)
 console="vidconsole"
 vfs.root.mountfrom="msdosfs:/dev/msdosfs/RENUX"
 EOF
@@ -1239,7 +1239,7 @@ make_bios_iso()
 # Root is found via the ISO9660 volume label (RENUXBIOS), so it works on
 # any CD/disk drive regardless of the device name.
 autoboot_delay="2"
-loader_logo="orb"
+loader_logo="renux"
 console="comconsole vidconsole"
 vfs.root.mountfrom="cd9660:/dev/iso9660/RENUXBIOS"
 EOF
