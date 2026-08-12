@@ -1,8 +1,6 @@
-name: Build Renux ISO & Release
+name: Build Renux ISO (Linux cross-build, manual)
 
 on:
-  push:
-    tags: [ 'v*' ]
   workflow_dispatch:
     inputs:
       version:

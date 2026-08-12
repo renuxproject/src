@@ -1,0 +1,79 @@
+name: Build Renux ISO (FreeBSD VM)
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 0.1.0). Leave empty for a snapshot release.'
+        required: false
+        default: ''
+      publish:
+        description: 'Publish a GitHub Release'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-iso-fbsd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Renux ISO (native FreeBSD)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Renux in FreeBSD VM
+        id: build
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: "14.3"
+          usesh: true
+          mem: 6144
+          cache-after-prepare: true
+          prepare: |
+            pkg install -y python3 xorriso
+          run: |
+            ./build.sh -j$(sysctl -n hw.ncpu) -I out build iso
+
+      - name: List artifacts
+        run: ls -lh out/
+
+      - name: Upload ISO artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: renux-iso
+          path: |
+            out/renux-uefi.iso
+            out/renux-bios.iso
+            out/renux-uefi.img
+          if-no-files-found: error
+
+      - name: Set release tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ inputs.version }}" ]; then
+            echo "value=v${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=snapshot-$(date +%Y%m%d-%H%M)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish GitHub Release
+        if: github.event_name == 'push' || inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.tag.outputs.value }}" \
+            out/renux-uefi.iso out/renux-bios.iso out/renux-uefi.img \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Renux ${{ steps.tag.outputs.value }}" \
+            --generate-notes
