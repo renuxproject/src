@@ -891,6 +891,17 @@ build_mini_userland()
 		    -j "${njobs}" ${BMK_ARGS} DESTDIR="${tmp}" install ||
 		    bomb "libc install failed"
 	fi
+	# libgcc_eh provides the personality/exception stubs that static
+	# executables link against (-lgcc_eh) on compiler-rt based builds.
+	if [ ! -f "${tmp}/usr/lib/libgcc_eh.a" ]; then
+		statusmsg "Building libgcc_eh"
+		run_cross "${BMAKE}" -C lib/libgcc_eh -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} all ||
+		    bomb "libgcc_eh build failed"
+		run_cross "${BMAKE}" -C lib/libgcc_eh -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} DESTDIR="${tmp}" install ||
+		    bomb "libgcc_eh install failed"
+	fi
 
 	# 4. ncurses (tinfo) + its build tools
 	if [ ! -f "${tmp}/usr/lib/libtinfow.a" ]; then
