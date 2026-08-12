@@ -33,19 +33,25 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     env:
-      # Keep the build objects inside the workspace so the VM syncs them back
-      # and actions/cache can persist them between runs.
+      # Keep the build objects and ccache inside the workspace so the VM syncs
+      # them back and actions/cache can persist them between runs.
       MAKEOBJDIRPREFIX: ${{ github.workspace }}/build
+      CCACHE_DIR: ${{ github.workspace }}/ccache
+      MK_CCACHE_BUILD: yes
+      CCACHE_BIN: /usr/local/bin/ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_MAXSIZE: 2G
+      CCACHE_COMPRESS: '1'
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore build cache
+      - name: Restore ccache
         uses: actions/cache/restore@v4
         with:
-          path: ${{ env.MAKEOBJDIRPREFIX }}
-          key: renux-build-fbsd-${{ runner.os }}-${{ github.sha }}
+          path: ${{ env.CCACHE_DIR }}
+          key: renux-ccache-fbsd-${{ runner.os }}-${{ github.sha }}
           restore-keys: |
-            renux-build-fbsd-${{ runner.os }}-
+            renux-ccache-fbsd-${{ runner.os }}-
 
       - name: Build Renux in FreeBSD VM
         id: build
@@ -54,10 +60,10 @@ jobs:
           release: "14.3"
           usesh: true
           mem: 6144
-          envs: 'MAKEOBJDIRPREFIX'
+          envs: 'MAKEOBJDIRPREFIX CCACHE_DIR MK_CCACHE_BUILD CCACHE_BIN CCACHE_BASEDIR CCACHE_MAXSIZE CCACHE_COMPRESS'
           cache-after-prepare: true
           prepare: |
-            pkg install -y python3 xorriso
+            pkg install -y python3 xorriso ccache
           run: |
             if [ "${{ inputs.include-world }}" = "true" ]; then
               TARGETS="build iso"
@@ -66,12 +72,12 @@ jobs:
             fi
             ./build.sh -j$(sysctl -n hw.ncpu) -I out $TARGETS
 
-      - name: Save build cache
+      - name: Save ccache
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: ${{ env.MAKEOBJDIRPREFIX }}
-          key: renux-build-fbsd-${{ runner.os }}-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ env.CCACHE_DIR }}
+          key: renux-ccache-fbsd-${{ runner.os }}-${{ github.sha }}-${{ github.run_id }}
 
       - name: List artifacts
         run: ls -lh out/

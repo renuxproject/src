@@ -38,7 +38,7 @@ jobs:
         run: |
           sudo apt-get update --quiet || true
           sudo apt-get -yq --no-install-suggests --no-install-recommends install \
-            bmake libarchive-dev clang-18 lld-18 dosfstools mtools xorriso
+            bmake libarchive-dev clang-18 lld-18 dosfstools mtools xorriso ccache
           # Make clang/lld the default compilers so build.sh and make.py
           # cross-build with clang instead of gcc.
           sudo ln -sf "$(command -v clang-18)"     /usr/local/bin/clang
@@ -61,17 +61,22 @@ jobs:
           echo "CC=clang"      >> "$GITHUB_ENV"
           echo "CXX=clang++"   >> "$GITHUB_ENV"
           echo "CPP=clang-cpp" >> "$GITHUB_ENV"
+          # Enable ccache (caches compiler output by content, so it works across
+          # runs even though file mtimes reset on every ephemeral runner).
+          echo "MK_CCACHE_BUILD=yes" >> "$GITHUB_ENV"
+          echo "CCACHE_BIN=/usr/bin/ccache" >> "$GITHUB_ENV"
+          echo "CCACHE_DIR=${PWD%/*}/ccache" >> "$GITHUB_ENV"
+          echo "CCACHE_BASEDIR=${PWD}" >> "$GITHUB_ENV"
+          echo "CCACHE_MAXSIZE=2G" >> "$GITHUB_ENV"
+          echo "CCACHE_COMPRESS=1" >> "$GITHUB_ENV"
 
-      - name: Restore build cache
+      - name: Restore ccache
         uses: actions/cache/restore@v4
         with:
-          path: ${{ env.MAKEOBJDIRPREFIX }}
-          # Exact match only on re-runs of the same commit; otherwise fall back
-          # to the most recent build so buildworld resumes incrementally
-          # (WITHOUT_CLEAN is used by build.sh/make.py).
-          key: renux-build-${{ runner.os }}-${{ github.sha }}
+          path: ${{ env.CCACHE_DIR }}
+          key: renux-ccache-${{ runner.os }}-${{ github.sha }}
           restore-keys: |
-            renux-build-${{ runner.os }}-
+            renux-ccache-${{ runner.os }}-
 
       - name: Build kernel and bootable ISO images
         run: |
@@ -95,14 +100,14 @@ jobs:
           echo "build failed after 4 attempts"
           exit 1
 
-      - name: Save build cache
+      - name: Save ccache
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: ${{ env.MAKEOBJDIRPREFIX }}
+          path: ${{ env.CCACHE_DIR }}
           # run_id makes the key unique per run so the save never collides
           # with an earlier cache of the same commit.
-          key: renux-build-${{ runner.os }}-${{ github.sha }}-${{ github.run_id }}
+          key: renux-ccache-${{ runner.os }}-${{ github.sha }}-${{ github.run_id }}
 
       - name: List artifacts
         run: ls -lh release/
