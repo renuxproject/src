@@ -1423,6 +1423,33 @@ make_world_bios_iso()
 	fi
 }
 
+# Set up a working root login on the live ISO (no password), the usual
+# live-CD convention.  Removes the passwd databases so libc falls back to
+# the flat files, which lets `login` accept an empty password.
+setup_world_root_login()
+{
+	local etc
+	etc="${WORLDDIR}/etc"
+	mkdir -p "${etc}" "${WORLDDIR}/root"
+	cat > "${etc}/master.passwd" <<'EOF'
+root::0:0:Charlie &:/root:/bin/sh
+EOF
+	cat > "${etc}/passwd" <<'EOF'
+root::0:0:Charlie &:/root:/bin/sh
+EOF
+	cat > "${etc}/group" <<'EOF'
+wheel:*:0:root
+daemon:*:1:
+kmem:*:2:
+sys:*:3:
+tty:*:4:
+operator:*:5:
+EOF
+	rm -f "${etc}/passwd.db" "${etc}/pwd.db" "${etc}/spwd.db" \
+	    "${etc}/master.passwd.db"
+	statusmsg "Configured root login (no password) in ${etc}"
+}
+
 run_qemu()
 {
 	local img ovmf
@@ -1625,6 +1652,7 @@ main()
 		build_efi_loader
 		build_bios_loader
 		if [ "${world_image}" = true ]; then
+			setup_world_root_login
 			stage_world_root
 			make_world_esp
 			for op in ${operations}
