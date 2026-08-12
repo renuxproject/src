@@ -7,6 +7,11 @@ on:
         description: 'Release version (e.g. 0.1.0). Leave empty for a snapshot release.'
         required: false
         default: ''
+      include-world:
+        description: 'Also build the full userland (buildworld). Slow: ~2h. The ISO itself only needs the kernel.'
+        required: false
+        default: false
+        type: boolean
       publish:
         description: 'Publish a GitHub Release'
         required: false
@@ -63,17 +68,24 @@ jobs:
           restore-keys: |
             renux-build-${{ runner.os }}-
 
-      - name: Build world, kernel and bootable ISO images
+      - name: Build kernel and bootable ISO images
         run: |
           set -o pipefail
+          if [ "${{ inputs.include-world }}" = "true" ]; then
+            echo "::notice::Full build with buildworld enabled (~2h)"
+            TARGETS="build iso"
+          else
+            echo "::notice::Kernel-only build (buildworld skipped) ~30min"
+            TARGETS="iso"
+          fi
           for attempt in 1 2 3 4; do
             echo "::group::build attempt ${attempt}"
-            if ./build.sh -j "$NPROC" -I release build iso; then
+            if ./build.sh -j "$NPROC" -I release $TARGETS; then
               echo "::endgroup::"
               exit 0
             fi
             echo "::endgroup::"
-            echo "attempt ${attempt} failed (flaky parallel bootstrap); retrying"
+            echo "attempt ${attempt} failed; retrying"
           done
           echo "build failed after 4 attempts"
           exit 1

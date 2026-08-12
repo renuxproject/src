@@ -9,6 +9,11 @@ on:
         description: 'Release version (e.g. 0.1.0). Leave empty for a snapshot release.'
         required: false
         default: ''
+      include-world:
+        description: 'Also build the full userland (buildworld). Slow. The ISO itself only needs the kernel.'
+        required: false
+        default: false
+        type: boolean
       publish:
         description: 'Publish a GitHub Release'
         required: false
@@ -54,7 +59,12 @@ jobs:
           prepare: |
             pkg install -y python3 xorriso
           run: |
-            ./build.sh -j$(sysctl -n hw.ncpu) -I out build iso
+            if [ "${{ inputs.include-world }}" = "true" ]; then
+              TARGETS="build iso"
+            else
+              TARGETS="iso"
+            fi
+            ./build.sh -j$(sysctl -n hw.ncpu) -I out $TARGETS
 
       - name: List artifacts
         run: ls -lh out/
