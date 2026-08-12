@@ -833,7 +833,39 @@ build_mini_userland()
 
 	ensure_libgcc_stub
 
-	# 2. libc
+	# 2. libc prerequisites (compiler-rt + syscall lib) -- these are part of
+	# the world _prereq_libs stage, so the kernel-only path must build them
+	# explicitly before libc can link (crt*.o, -lcompiler_rt, -lsys).
+	if [ ! -f "${tmp}/usr/lib/libcompiler_rt.a" ]; then
+		statusmsg "Building libcompiler_rt"
+		run_cross "${BMAKE}" -C lib/libcompiler_rt -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} all ||
+		    bomb "libcompiler_rt build failed"
+		run_cross "${BMAKE}" -C lib/libcompiler_rt -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} DESTDIR="${tmp}" install ||
+		    bomb "libcompiler_rt install failed"
+	fi
+	if [ ! -f "${tmp}/usr/lib/libsys.a" ]; then
+		statusmsg "Building libsys"
+		run_cross "${BMAKE}" -C lib/libsys -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} all ||
+		    bomb "libsys build failed"
+		run_cross "${BMAKE}" -C lib/libsys -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} DESTDIR="${tmp}" install ||
+		    bomb "libsys install failed"
+	fi
+	if [ -d "${SRCDIR}/lib/libssp_nonshared" ] && \
+	    [ ! -f "${tmp}/usr/lib/libssp_nonshared.a" ]; then
+		statusmsg "Building libssp_nonshared"
+		run_cross "${BMAKE}" -C lib/libssp_nonshared -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} all ||
+		    bomb "libssp_nonshared build failed"
+		run_cross "${BMAKE}" -C lib/libssp_nonshared -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} DESTDIR="${tmp}" install ||
+		    bomb "libssp_nonshared install failed"
+	fi
+
+	# 3. libc
 	if [ ! -f "${tmp}/usr/lib/libc.a" ]; then
 		statusmsg "Building libc"
 		run_cross "${BMAKE}" -C lib/libc -m "${SRCDIR}/share/mk" \
@@ -844,7 +876,7 @@ build_mini_userland()
 		    bomb "libc install failed"
 	fi
 
-	# 3. ncurses (tinfo) + its build tools
+	# 4. ncurses (tinfo) + its build tools
 	if [ ! -f "${tmp}/usr/lib/libtinfow.a" ]; then
 		statusmsg "Building ncurses (tinfo)"
 		run_host_bmake lib/ncurses/tinfo build-tools ||
