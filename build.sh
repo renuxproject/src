@@ -1278,6 +1278,23 @@ main()
 	parseoptions "$@"
 	provision_host_shims
 
+	# ---------------------------------------------------------------------------
+	# Skip bootstrapping FreeBSD's own compiler/linker when a suitable external
+	# toolchain is available on the host.  make.py already uses the host clang/lld
+	# as XCC/XLD; setting these MK_* vars avoids compiling libllvmminimal + clang
+	# + lld from source, which is the bulk of the "kernel-toolchain" stage.
+	# Set RENUX_BOOTSTRAP_TOOLCHAIN=yes to force building the bootstrap toolchain.
+	# ---------------------------------------------------------------------------
+	if [ "${RENUX_BOOTSTRAP_TOOLCHAIN:-auto}" != "yes" ] && ! is_bsd && \
+	   command -v clang >/dev/null 2>&1 && command -v ld.lld >/dev/null 2>&1
+	then
+		statusmsg "External clang/lld toolchain detected; skipping bootstrap compiler build"
+		for v in MK_CLANG MK_LLD MK_CLANG_BOOTSTRAP MK_LLD_BOOTSTRAP MK_LLDB MK_LLVM_BINUTILS
+		do
+			setmakeenv "${v}" no
+		done
+	fi
+
 	BMAKE="${MAKEOBJDIRPREFIX}/bmake-install/bin/bmake"
 	njobs="${parallel#-j }"
 	[ -n "${njobs}" ] || njobs="${ncpu:-2}"
