@@ -14,6 +14,11 @@ on:
         required: false
         default: false
         type: boolean
+      world-image:
+        description: 'Install the full world INTO the ISO (build worldiso). Very slow (~2h+), produces a large live ISO.'
+        required: false
+        default: false
+        type: boolean
       publish:
         description: 'Publish a GitHub Release'
         required: false
@@ -65,7 +70,9 @@ jobs:
           prepare: |
             pkg install -y python3 xorriso ccache
           run: |
-            if [ "${{ inputs.include-world }}" = "true" ]; then
+            if [ "${{ inputs.world-image }}" = "true" ]; then
+              TARGETS="build worldiso"
+            elif [ "${{ inputs.include-world }}" = "true" ]; then
               TARGETS="build iso"
             else
               TARGETS="iso"
@@ -90,7 +97,7 @@ jobs:
             out/renux-uefi.iso
             out/renux-bios.iso
             out/renux-uefi.img
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Set release tag
         id: tag
@@ -108,8 +115,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ steps.tag.outputs.value }}" \
-            out/renux-uefi.iso out/renux-bios.iso out/renux-uefi.img \
+          FILES=""
+          for f in out/renux-uefi.iso out/renux-bios.iso out/renux-uefi.img; do
+            [ -f "$f" ] && FILES="$FILES $f"
+          done
+          gh release create "${{ steps.tag.outputs.value }}" $FILES \
             --repo "$GITHUB_REPOSITORY" \
             --title "Renux ${{ steps.tag.outputs.value }}" \
             --generate-notes

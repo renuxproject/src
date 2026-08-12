@@ -12,6 +12,11 @@ on:
         required: false
         default: false
         type: boolean
+      world-image:
+        description: 'Install the full world INTO the ISO (build worldiso). Very slow (~2h+), produces a large live ISO.'
+        required: false
+        default: false
+        type: boolean
       publish:
         description: 'Publish a GitHub Release'
         required: false
@@ -81,7 +86,10 @@ jobs:
       - name: Build kernel and bootable ISO images
         run: |
           set -o pipefail
-          if [ "${{ inputs.include-world }}" = "true" ]; then
+          if [ "${{ inputs.world-image }}" = "true" ]; then
+            echo "::notice::World ISO enabled (build worldiso) ~2h+"
+            TARGETS="build worldiso"
+          elif [ "${{ inputs.include-world }}" = "true" ]; then
             echo "::notice::Full build with buildworld enabled (~2h)"
             TARGETS="build iso"
           else
@@ -120,7 +128,7 @@ jobs:
             release/renux-uefi.iso
             release/renux-bios.iso
             release/renux-uefi.img
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Set release tag
         id: tag
@@ -138,8 +146,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ steps.tag.outputs.value }}" \
-            release/renux-uefi.iso release/renux-bios.iso release/renux-uefi.img \
+          FILES=""
+          for f in release/renux-uefi.iso release/renux-bios.iso release/renux-uefi.img; do
+            [ -f "$f" ] && FILES="$FILES $f"
+          done
+          gh release create "${{ steps.tag.outputs.value }}" $FILES \
             --repo "$GITHUB_REPOSITORY" \
             --title "Renux ${{ steps.tag.outputs.value }}" \
             --generate-notes
