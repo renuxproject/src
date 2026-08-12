@@ -389,6 +389,8 @@ help()
     install=IDIR        Install world into IDIR (installworld + installkernel).
     iso                 Build the kernel (if needed), both loaders and
                         UEFI + BIOS bootable ISO images.
+    worldiso            Install the full world into a root and build
+                        UEFI + BIOS live ISOs with it (needs 'build' first).
     bootimage           Build the kernel (if needed), both loaders and a
                         UEFI GPT+ESP disk image plus a BIOS ISO.
     qemu                Boot the image in QEMU (-L efi|bios).
@@ -514,7 +516,7 @@ parseoptions()
 		help) help; exit 0 ;;
 		list-arch) listarch "${MACHINE}" "${MACHINE_ARCH}" ; exit ;;
 		build|world|distribution|release|tools|clean|obj|update|\
-		show-params|kernels|iso|bootimage|qemu|run)
+		show-params|kernels|iso|bootimage|worldiso|qemu|run)
 			;;
 		kernel=*|kernel.gdb=*|install=*)
 			arg=${op#*=}
@@ -1265,6 +1267,162 @@ EOF
 	fi
 }
 
+# ---------------------------------------------------------------------------
+# World-based live ISO (Marco 1): installworld + distribution + installkernel
+# into WORLDDIR, then build UEFI/BIOS ISOs that boot the full system.
+# ---------------------------------------------------------------------------
+
+write_world_loader_conf()
+{
+	local console="$1"
+	cat > "${WORLDDIR}/boot/loader.conf" <<EOF
+# Renux live ISO boot configuration.
+autoboot_delay="2"
+loader_logo="renux"
+console="${console}"
+vfs.root.mountfrom="cd9660:/dev/iso9660/RENUX"
+EOF
+	cp "${WORLDDIR}/boot/loader.conf" "${WORLDDIR}/boot/defaults/loader.conf"
+}
+
+stage_world_root()
+{
+	local loader
+	loader="$(find_loader_efi)"
+	if [ -z "${loader}" ]; then
+		if [ "${runcmd}" = echo ]; then
+			loader="<loader.efi>"
+		else
+			bomb "EFI loader not found; build it first"
+		fi
+	fi
+	if [ "${runcmd}" != echo ]; then
+		[ -f "${WORLDDIR}/boot/kernel/kernel" ] ||
+		    bomb "world root missing kernel at ${WORLDDIR}/boot/kernel/kernel"
+		[ -f "${WORLDDIR}/etc/rc" ] ||
+		    bomb "world root missing /etc; run 'build worldiso' (needs buildworld)"
+	fi
+
+	mkdir -p "${WORLDDIR}/EFI/BOOT" "${WORLDDIR}/boot/defaults" \
+	    "${WORLDDIR}/boot/lua" "${WORLDDIR}/boot/images"
+	if [ "${runcmd}" != echo ]; then
+		cp "${loader}" "${WORLDDIR}/EFI/BOOT/BOOTX64.EFI"
+	fi
+	cp ${SRCDIR}/stand/lua/*.lua "${WORLDDIR}/boot/lua/"
+	cp ${SRCDIR}/stand/images/*.png "${WORLDDIR}/boot/images/"
+	write_world_loader_conf "efi"
+	statusmsg "Staged world root boot files into ${WORLDDIR}"
+}
+
+make_world_esp()
+{
+	local img loader stage
+	img="${IMAGEDIR}/renux-esp-boot.img"
+	loader="$(find_loader_efi)"
+	if [ -z "${loader}" ]; then
+		if [ "${runcmd}" = echo ]; then
+			loader="<loader.efi>"
+		else
+			bomb "EFI loader not found"
+		fi
+	fi
+	command -v mkfs.fat >/dev/null 2>&1 || command -v makefs >/dev/null 2>&1 ||
+	    bomb "need mkfs.fat (Linux) or makefs (BSD) to build images"
+	stage="${IMAGEDIR}/esp-boot-stage"
+	rm -rf "${stage}"
+	mkdir -p "${stage}/EFI/BOOT"
+	if [ "${runcmd}" != echo ]; then
+		cp "${loader}" "${stage}/EFI/BOOT/BOOTX64.EFI"
+	fi
+	statusmsg "Building EFI boot ESP ${img}"
+	if is_bsd; then
+		command -v makefs >/dev/null 2>&1 ||
+		    bomb "makefs is required on ${host_os}"
+		makefs -t msdos -o fat_type=32 -o volume_label=RENUX \
+		    "${img}" "${stage}" ||
+		    bomb "makefs failed"
+	else
+		command -v mkfs.fat >/dev/null 2>&1 ||
+		    bomb "mkfs.fat (dosfstools) is required"
+		command -v mcopy >/dev/null 2>&1 ||
+		    bomb "mtools is required"
+		rm -f "${img}"
+		truncate -s "32M" "${img}"
+		mkfs.fat -F32 -n RENUX "${img}" >/dev/null
+		mcopy -i "${img}" -s "${stage}/"* ::/
+	fi
+}
+
+make_world_uefi_iso()
+{
+	if ! is_bsd && ! command -v xorriso >/dev/null 2>&1; then
+		bomb "xorriso is required to build an ISO on this host"
+	fi
+	write_world_loader_conf "efi"
+	statusmsg "Building UEFI world ISO ${IMAGEDIR}/renux-uefi.iso"
+	if is_bsd; then
+		command -v makefs >/dev/null 2>&1 ||
+		    bomb "makefs is required on ${host_os}"
+		${runcmd} makefs -t cd9660 -o label=RENUX \
+		    -o bootimage=efi\;${IMAGEDIR}/renux-esp-boot.img \
+		    -o no-emul-boot -o platformid=efi \
+		    "${WORLDDIR}" "${IMAGEDIR}/renux-uefi.iso" ||
+		    bomb "makefs failed"
+	else
+		# xorriso needs the El Torito EFI image inside the ISO tree.
+		cp "${IMAGEDIR}/renux-esp-boot.img" "${WORLDDIR}/renux-esp.img"
+		${runcmd} xorriso -as mkisofs -V RENUX \
+		    -o "${IMAGEDIR}/renux-uefi.iso" \
+		    -R -eltorito-alt-boot -e renux-esp.img -no-emul-boot -isohybrid-gpt-basdat \
+		    "${WORLDDIR}" ||
+		    bomb "xorriso failed"
+		rm -f "${WORLDDIR}/renux-esp.img"
+	fi
+}
+
+make_world_bios_iso()
+{
+	local cdboot loader
+	loader="$(find_bios_loader)"
+	if [ -z "${loader}" ]; then
+		if [ "${runcmd}" = echo ]; then
+			loader="<bios-loader>"
+		else
+			bomb "BIOS loader not found; build it first"
+		fi
+	fi
+	cdboot="$(find_cdboot)"
+	if [ -z "${cdboot}" ]; then
+		if [ "${runcmd}" = echo ]; then
+			cdboot="<cdboot>"
+		else
+			bomb "cdboot not found"
+		fi
+	fi
+	if [ "${runcmd}" != echo ]; then
+		cp "${cdboot}" "${WORLDDIR}/cdboot"
+		cp "${loader}" "${WORLDDIR}/boot/loader"
+	fi
+	write_world_loader_conf "comconsole vidconsole"
+	statusmsg "Building BIOS world ISO ${IMAGEDIR}/renux-bios.iso"
+	if is_bsd; then
+		command -v makefs >/dev/null 2>&1 ||
+		    bomb "makefs is required on ${host_os}"
+		${runcmd} makefs -t cd9660 -o label=RENUX \
+		    -o bootimage=i386\;${cdboot} -o no-emul-boot \
+		    "${WORLDDIR}" "${IMAGEDIR}/renux-bios.iso" ||
+		    bomb "makefs failed"
+	else
+		command -v xorriso >/dev/null 2>&1 ||
+		    bomb "xorriso is required to build an ISO on this host"
+		${runcmd} xorriso -as mkisofs -V RENUX \
+		    -o "${IMAGEDIR}/renux-bios.iso" \
+		    -R -b cdboot -c boot.cat -no-emul-boot -boot-load-size 4 \
+		    "${WORLDDIR}" ||
+		    bomb "xorriso failed"
+	fi
+}
+
 run_qemu()
 {
 	local img ovmf
@@ -1330,6 +1488,8 @@ main()
 	boot_mode="${boot_mode:-efi}"
 	do_image=false
 	have_kernel=false
+	world_image=false
+	WORLDDIR="${WORLDDIR:-${IMAGEDIR}/world-root}"
 
 	build_start=$(date)
 	statusmsg "${progname}: started: ${build_start}"
@@ -1404,6 +1564,12 @@ main()
 		kernel.gdb=*)    did=true; have_kernel=true; KERNCONF="${op#kernel.gdb=}"; cmd="${cmd} KERNCONF=${KERNCONF} WERROR= kernel-toolchain buildkernel" ;;
 		install=*)       did=true
 			cmd="${cmd} DESTDIR=${op#install=} installworld installkernel" ;;
+		worldiso)
+			world_image=true
+			do_image=true
+			did=true
+			have_kernel=true
+			cmd="${cmd} DESTDIR=${WORLDDIR} installworld distribution installkernel" ;;
 		iso|bootimage|qemu|run)
 			do_image=true
 			if [ "${have_kernel}" = false ]; then
@@ -1458,17 +1624,28 @@ main()
 		mkdir -p "${IMAGEDIR}"
 		build_efi_loader
 		build_bios_loader
-		build_mini_userland
-		build_renux_tools
-		make_boot_esp
-		for op in ${operations}
-		do
-			case "$op" in
-			iso)	make_uefi_disk; make_uefi_iso; make_bios_iso ;;
-			bootimage)	make_uefi_disk; make_bios_iso ;;
-			qemu|run)	run_qemu ;;
-			esac
-		done
+		if [ "${world_image}" = true ]; then
+			stage_world_root
+			make_world_esp
+			for op in ${operations}
+			do
+				case "$op" in
+				worldiso)	make_world_uefi_iso; make_world_bios_iso ;;
+				esac
+			done
+		else
+			build_mini_userland
+			build_renux_tools
+			make_boot_esp
+			for op in ${operations}
+			do
+				case "$op" in
+				iso)	make_uefi_disk; make_uefi_iso; make_bios_iso ;;
+				bootimage)	make_uefi_disk; make_bios_iso ;;
+				qemu|run)	run_qemu ;;
+				esac
+			done
+		fi
 	fi
 
 	statusmsg "${progname}: ended: $(date)"
