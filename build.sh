@@ -1448,6 +1448,16 @@ operator:*:5:
 EOF
 	rm -f "${etc}/passwd.db" "${etc}/pwd.db" "${etc}/spwd.db" \
 	    "${etc}/master.passwd.db"
+	# Live-CD fstab: mount the writable directories on tmpfs since the ISO
+	# root is read-only.
+	cat > "${etc}/fstab" <<'EOF'
+tmpfs	/tmp		tmpfs	rw,nosuid,mode=01777	0 0
+tmpfs	/var/run	tmpfs	rw,nosuid		0 0
+tmpfs	/var/tmp	tmpfs	rw,nosuid,mode=01777	0 0
+tmpfs	/var/run/devd	tmpfs	rw,nosuid		0 0
+tmpfs	/var/log	tmpfs	rw,nosuid		0 0
+tmpfs	/var/db		tmpfs	rw,nosuid		0 0
+EOF
 	# Make every console tty "secure" so root may log in with the password.
 	if [ -f "${etc}/ttys" ]; then
 		sed 's/[[:space:]]insecure[[:space:]]/ secure /g' \
@@ -1455,6 +1465,24 @@ EOF
 		    mv -f "${etc}/ttys.new" "${etc}/ttys"
 	fi
 	statusmsg "Configured root login (password: renux) in ${etc}"
+}
+
+# Fix ownership/permissions of the installed world root.  On a cross-build the
+# install wrapper cannot set -o/-g, so files end up owned by the build user;
+# FreeBSD's login/pam/mtree refuse that.  Restore root ownership here.
+fix_world_root_perms()
+{
+	if [ "${runcmd}" = echo ]; then
+		echo "chown -R 0:0 ${WORLDDIR} + mtree"
+		return 0
+	fi
+	if command -v chown >/dev/null 2>&1; then
+		chown -R 0:0 "${WORLDDIR}" 2>/dev/null ||
+		    statusmsg "warning: could not chown world root (not running as root?)"
+	else
+		statusmsg "warning: chown not available on ${host_os}"
+	fi
+	touch "${WORLDDIR}/etc/fstab" 2>/dev/null || :
 }
 
 run_qemu()
@@ -1661,6 +1689,7 @@ main()
 		if [ "${world_image}" = true ]; then
 			setup_world_root_login
 			stage_world_root
+			fix_world_root_perms
 			make_world_esp
 			for op in ${operations}
 			do
