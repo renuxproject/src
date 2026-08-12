@@ -45,6 +45,11 @@ jobs:
           sudo ln -sf "$(command -v clang++-18)"   /usr/local/bin/clang++
           sudo ln -sf "$(command -v clang-cpp-18)" /usr/local/bin/clang-cpp
           sudo ln -sf "$(command -v ld.lld-18)"    /usr/local/bin/ld.lld
+          # The loader/host build (stand/) looks for the linker in /usr/bin.
+          sudo ln -sf "$(command -v clang-18)"     /usr/bin/clang
+          sudo ln -sf "$(command -v clang++-18)"   /usr/bin/clang++
+          sudo ln -sf "$(command -v clang-cpp-18)" /usr/bin/clang-cpp
+          sudo ln -sf "$(command -v ld.lld-18)"    /usr/bin/ld.lld
           clang --version | head -1
 
       - name: Create build environment
