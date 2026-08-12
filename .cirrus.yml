@@ -190,6 +190,39 @@ task:
   - df -m
   - du -m -s /usr/obj
 
+build_release_task:
+  name: Build Renux ISO and publish release (native FreeBSD)
+  only_if: $CIRRUS_TAG =~ 'v.*'
+  timeout_in: 240m
+
+  install_script:
+  - sh .cirrus-ci/pkg-install.sh git-lite xorriso python3 gh
+
+  setup_script:
+  - uname -a
+  - df -m
+  - mkdir -p /usr/obj/$(pwd -P)
+
+  build_script:
+  - ./build.sh -j$(nproc) -I out build iso
+
+  list_script:
+  - ls -lh out/
+
+  iso_artifact:
+    path: "out/**"
+
+  publish_script:
+  - |
+    if [ -n "${GH_TOKEN:-}" ]; then
+      gh release create "${CIRRUS_TAG:-snapshot-$(date +%Y%m%d-%H%M)}" \
+        out/renux-uefi.iso out/renux-bios.iso out/renux-uefi.img \
+        --repo "$CIRRUS_REPO_FULL_NAME" \
+        --title "Renux ${CIRRUS_TAG}" --generate-notes
+    else
+      echo "GH_TOKEN not set; skipping GitHub release (artifacts were uploaded)."
+    fi
+
 precommit_task:
   matrix:
     - name: amd64 smoke test using internal ci systems
