@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Restore build cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.MAKEOBJDIRPREFIX }}
           key: renux-build-fbsd-${{ runner.os }}-${{ github.sha }}
@@ -65,6 +65,13 @@ jobs:
               TARGETS="iso"
             fi
             ./build.sh -j$(sysctl -n hw.ncpu) -I out $TARGETS
+
+      - name: Save build cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.MAKEOBJDIRPREFIX }}
+          key: renux-build-fbsd-${{ runner.os }}-${{ github.sha }}-${{ github.run_id }}
 
       - name: List artifacts
         run: ls -lh out/
