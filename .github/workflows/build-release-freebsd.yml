@@ -27,8 +27,20 @@ jobs:
     name: Build Renux ISO (native FreeBSD)
     runs-on: ubuntu-24.04
     timeout-minutes: 360
+    env:
+      # Keep the build objects inside the workspace so the VM syncs them back
+      # and actions/cache can persist them between runs.
+      MAKEOBJDIRPREFIX: ${{ github.workspace }}/build
     steps:
       - uses: actions/checkout@v4
+
+      - name: Restore build cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.MAKEOBJDIRPREFIX }}
+          key: renux-build-fbsd-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            renux-build-fbsd-${{ runner.os }}-
 
       - name: Build Renux in FreeBSD VM
         id: build
@@ -37,6 +49,7 @@ jobs:
           release: "14.3"
           usesh: true
           mem: 6144
+          envs: 'MAKEOBJDIRPREFIX'
           cache-after-prepare: true
           prepare: |
             pkg install -y python3 xorriso

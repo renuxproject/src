@@ -52,6 +52,17 @@ jobs:
           echo "CXX=clang++"   >> "$GITHUB_ENV"
           echo "CPP=clang-cpp" >> "$GITHUB_ENV"
 
+      - name: Restore build cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.MAKEOBJDIRPREFIX }}
+          # Exact match only on re-runs of the same commit; otherwise fall back
+          # to the most recent build so buildworld resumes incrementally
+          # (WITHOUT_CLEAN is used by build.sh/make.py).
+          key: renux-build-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            renux-build-${{ runner.os }}-
+
       - name: Build world, kernel and bootable ISO images
         run: |
           set -o pipefail
