@@ -864,6 +864,17 @@ build_mini_userland()
 		    -j "${njobs}" ${BMK_ARGS} DESTDIR="${tmp}" install ||
 		    bomb "libssp_nonshared install failed"
 	fi
+	# lib/csu provides the crt*.o startup objects (crti.o, crtn.o,
+	# crtbeginS.o, ...) that libsys/libc need to link shared libraries.
+	if [ ! -f "${tmp}/usr/lib/crti.o" ]; then
+		statusmsg "Building lib/csu (crt startup objects)"
+		run_cross "${BMAKE}" -C lib/csu -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} all ||
+		    bomb "lib/csu build failed"
+		run_cross "${BMAKE}" -C lib/csu -m "${SRCDIR}/share/mk" \
+		    -j "${njobs}" ${BMK_ARGS} DESTDIR="${tmp}" install ||
+		    bomb "lib/csu install failed"
+	fi
 
 	# 3. libc
 	if [ ! -f "${tmp}/usr/lib/libc.a" ]; then
