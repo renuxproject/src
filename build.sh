@@ -1423,19 +1423,20 @@ make_world_bios_iso()
 	fi
 }
 
-# Set up a working root login on the live ISO (no password), the usual
-# live-CD convention.  Removes the passwd databases so libc falls back to
-# the flat files, which lets `login` accept an empty password.
+# Set up a working root login on the live ISO (password: "renux"), the usual
+# live-CD convention.  Removes the passwd databases so libc falls back to the
+# flat files, and marks the console ttys secure so root can log in anywhere.
 setup_world_root_login()
 {
 	local etc
 	etc="${WORLDDIR}/etc"
 	mkdir -p "${etc}" "${WORLDDIR}/root"
+	# SHA-512 crypt of the password "renux".
 	cat > "${etc}/master.passwd" <<'EOF'
-root::0:0:Charlie &:/root:/bin/sh
+root:$6$p/POQrICeR8jj08w$0iDOV09KRP9ZcqWA/ea0l.d8opEZVr1OQCKalipgtljoiZIPa3aPMNWJYlAaazZ6srkHUPxagSggiKmJRwTfc0:0:0:Charlie &:/root:/bin/sh
 EOF
 	cat > "${etc}/passwd" <<'EOF'
-root::0:0:Charlie &:/root:/bin/sh
+root:$6$p/POQrICeR8jj08w$0iDOV09KRP9ZcqWA/ea0l.d8opEZVr1OQCKalipgtljoiZIPa3aPMNWJYlAaazZ6srkHUPxagSggiKmJRwTfc0:0:0:Charlie &:/root:/bin/sh
 EOF
 	cat > "${etc}/group" <<'EOF'
 wheel:*:0:root
@@ -1447,7 +1448,13 @@ operator:*:5:
 EOF
 	rm -f "${etc}/passwd.db" "${etc}/pwd.db" "${etc}/spwd.db" \
 	    "${etc}/master.passwd.db"
-	statusmsg "Configured root login (no password) in ${etc}"
+	# Make every console tty "secure" so root may log in with the password.
+	if [ -f "${etc}/ttys" ]; then
+		sed 's/[[:space:]]insecure[[:space:]]/ secure /g' \
+		    "${etc}/ttys" > "${etc}/ttys.new" && \
+		    mv -f "${etc}/ttys.new" "${etc}/ttys"
+	fi
+	statusmsg "Configured root login (password: renux) in ${etc}"
 }
 
 run_qemu()
