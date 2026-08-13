@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Renux">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#24510d"/>
+      <stop offset="42%" stop-color="#4e8517"/>
+      <stop offset="76%" stop-color="#8fbf22"/>
+      <stop offset="100%" stop-color="#e3d43a"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <text x="256" y="312" text-anchor="middle"
+        font-family="FreeSerif, Georgia, 'Times New Roman', serif" font-style="italic" font-weight="700"
+        font-size="165" letter-spacing="2" fill="#ffffff"
+        style="text-shadow: 0 2px 10px rgba(0,0,0,.28)">Renux</text>
+</svg>
