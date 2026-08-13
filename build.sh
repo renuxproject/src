@@ -1405,7 +1405,7 @@ make_world_bios_iso()
 		cp "${cdboot}" "${WORLDDIR}/cdboot"
 		cp "${loader}" "${WORLDDIR}/boot/loader"
 	fi
-	write_world_loader_conf "vidconsole"
+	write_world_loader_conf "comconsole vidconsole"
 	statusmsg "Building BIOS world ISO ${IMAGEDIR}/renux-bios.iso"
 	if is_bsd; then
 		command -v makefs >/dev/null 2>&1 ||
