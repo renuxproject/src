@@ -1451,9 +1451,13 @@ EOF
 	rm -f "${etc}/passwd.db" "${etc}/pwd.db" "${etc}/spwd.db" \
 	    "${etc}/master.passwd.db"
 	# Live-CD fstab: mount the ISO root explicitly (like the FreeBSD live CD).
-	# The root device is the ISO9660 volume labelled RENUX.
+	# The root device is the ISO9660 volume labelled RENUX.  tmpfs mounts keep
+	# /tmp and /var/run writable on the read-only CD (mount auto-kldloads the
+	# tmpfs module).
 	cat > "${etc}/fstab" <<'EOF'
 /dev/iso9660/RENUX	/	cd9660	ro	0 0
+tmpfs			/tmp	tmpfs	rw,mode=1777	0 0
+tmpfs			/var/run	tmpfs	rw		0 0
 EOF
 	# Make every console tty "secure" so root may log in with the password.
 	if [ -f "${etc}/ttys" ]; then
@@ -1639,6 +1643,10 @@ main()
 	[ "${do_expertmode}" = false ] || :
 	[ -n "${parallel}" ] && cmd="${cmd} ${parallel}"
 	cmd="${cmd} TARGET=${TARGET} TARGET_ARCH=${TARGET_ARCH}"
+	# Disable stack protection for the kernel and its modules: the cross-built
+	# .ko files reference __stack_chk_guard, which the kernel module loader
+	# cannot resolve (breaks loading e.g. tmpfs.ko).
+	cmd="${cmd} MK_SSP=no"
 
 	did=false
 	for op in ${operations}
