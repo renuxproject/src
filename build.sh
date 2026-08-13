@@ -1433,12 +1433,12 @@ setup_world_root_login()
 	local etc
 	etc="${WORLDDIR}/etc"
 	mkdir -p "${etc}" "${WORLDDIR}/root"
-	# SHA-512 crypt of the password "renux".
+	# Root account with an empty password (live/installer CD convention).
 	cat > "${etc}/master.passwd" <<'EOF'
-root:$6$p/POQrICeR8jj08w$0iDOV09KRP9ZcqWA/ea0l.d8opEZVr1OQCKalipgtljoiZIPa3aPMNWJYlAaazZ6srkHUPxagSggiKmJRwTfc0:0:0:Charlie &:/root:/bin/sh
+root::0:0:Charlie &:/root:/bin/sh
 EOF
 	cat > "${etc}/passwd" <<'EOF'
-root:$6$p/POQrICeR8jj08w$0iDOV09KRP9ZcqWA/ea0l.d8opEZVr1OQCKalipgtljoiZIPa3aPMNWJYlAaazZ6srkHUPxagSggiKmJRwTfc0:0:0:Charlie &:/root:/bin/sh
+root::0:0:Charlie &:/root:/bin/sh
 EOF
 	cat > "${etc}/group" <<'EOF'
 wheel:*:0:root
@@ -1472,7 +1472,7 @@ EOF
 EOF
 	chmod 755 "${etc}/rc.local" 2>/dev/null || :
 	chmod 755 "${etc}/rc.local" 2>/dev/null || :
-	statusmsg "Configured root login (password: renux) in ${etc}"
+	statusmsg "Configured root login (no password) in ${etc}"
 }
 
 # Fix ownership/permissions of the installed world root.  On a cross-build the
@@ -1500,6 +1500,30 @@ fix_world_root_perms()
 		statusmsg "warning: chown not available on ${host_os}"
 	fi
 	touch "${WORLDDIR}/etc/fstab" 2>/dev/null || :
+}
+
+# Build the official release media (disc1.iso, bootonly, memstick, dist
+# sets: base.txz, kernel.txz) via the FreeBSD release machinery.  This needs
+# makefs, so it is only supported on a native BSD host.
+build_release_media()
+{
+	local rel
+	rel="${RELEASEDIR:-${IMAGEDIR}/release}"
+	if [ "${runcmd}" = echo ]; then
+		echo "make -C release cdrom (release media -> ${rel})"
+		return 0
+	fi
+	if ! is_bsd; then
+		bomb "release media needs makefs; run 'release' on a FreeBSD host (or the FreeBSD VM workflow)"
+	fi
+	command -v makefs >/dev/null 2>&1 ||
+	    bomb "makefs is required to build release media"
+	mkdir -p "${rel}"
+	statusmsg "Building release media (disc1.iso etc.)"
+	run_cross "${BMAKE}" -C "${SRCDIR}/release" -m "${SRCDIR}/share/mk" \
+	    -j "${njobs}" TARGET=${TARGET} TARGET_ARCH=${TARGET_ARCH} \
+	    RELEASEDIR="${rel}" MAKEOBJDIRPREFIX="${MAKEOBJDIRPREFIX}" cdrom ||
+	    bomb "release build failed"
 }
 
 run_qemu()
@@ -1568,6 +1592,7 @@ main()
 	do_image=false
 	have_kernel=false
 	world_image=false
+	do_release=false
 	WORLDDIR="${WORLDDIR:-${IMAGEDIR}/world-root}"
 
 	build_start=$(date)
@@ -1628,13 +1653,19 @@ main()
 				cmd="${cmd} buildworld buildkernel"
 			fi
 			;;
-		world|distribution|release)
+		world|distribution)
 			if [ "${kernel_only}" = true ]; then
 				warning "${op} ignored in kernel-only mode (-K)"
 				did=true; have_kernel=true
 				cmd="${cmd} KERNCONF=${KERNCONF:-${KERNCONF_DEFAULT}} WERROR= kernel-toolchain buildkernel"
 			else
 				did=true; cmd="${cmd} buildworld"
+			fi
+			;;
+		release)
+			did=true; do_release=true
+			if [ "${kernel_only}" != true ]; then
+				cmd="${cmd} buildworld buildkernel"
 			fi
 			;;
 		tools)           did=true; cmd="${cmd} buildtools" ;;
@@ -1696,6 +1727,11 @@ main()
 		then
 			bomb "make.py build command failed"
 		fi
+	fi
+
+	if [ "${do_release}" = true ]
+	then
+		build_release_media
 	fi
 
 	if [ "${do_image}" = true ]
