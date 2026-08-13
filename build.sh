@@ -1463,6 +1463,19 @@ EOF
 		    "${etc}/ttys" > "${etc}/ttys.new" && \
 		    mv -f "${etc}/ttys.new" "${etc}/ttys"
 	fi
+	# Load tmpfs early so the live fstab mounts (/var/run, /tmp, ...) work.
+	cat > "${etc}/rc.conf" <<'EOF'
+hostname="renux"
+kld_list="tmpfs"
+EOF
+	# Regenerate the passwd databases from master.passwd on first boot so
+	# getpwnam() finds root even without a prebuilt passwd.db.
+	cat > "${etc}/rc.local" <<'EOF'
+if [ ! -f /etc/master.passwd.db ]; then
+	/usr/sbin/pwd_mkdb -p /etc/master.passwd 2>/dev/null
+fi
+EOF
+	chmod 755 "${etc}/rc.local" 2>/dev/null || :
 	statusmsg "Configured root login (password: renux) in ${etc}"
 }
 
@@ -1476,7 +1489,7 @@ fix_world_root_perms()
 		echo "chown -R 0:0 ${WORLDDIR} + create tmpfs mountpoints"
 		return 0
 	fi
-	mkdir -p "${WORLDDIR}/tmp" "${WORLDDIR}/var/run" "${WORLDDIR}/var/tmp" \
+	mkdir -p "${WORLDDIR}/tmp" "${WORLDDIR}/var/run/devd" "${WORLDDIR}/var/tmp" \
 	    "${WORLDDIR}/var/log" "${WORLDDIR}/var/db" 2>/dev/null || :
 	if command -v chown >/dev/null 2>&1; then
 		if chown -R 0:0 "${WORLDDIR}" 2>/dev/null; then
