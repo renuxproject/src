@@ -1276,8 +1276,10 @@ write_world_loader_conf()
 {
 	local console="$1"
 	cat > "${WORLDDIR}/boot/loader.conf" <<EOF
-# Renux live ISO boot configuration.
+# Renux live/installer ISO boot configuration: go straight to a single-user
+# root shell (the ISO will host the installer).
 autoboot_delay="2"
+boot_single="YES"
 loader_logo="renux"
 console="${console}"
 vfs.root.mountfrom="cd9660:/dev/iso9660/RENUX"
