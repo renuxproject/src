@@ -1276,10 +1276,11 @@ write_world_loader_conf()
 {
 	local console="$1"
 	cat > "${WORLDDIR}/boot/loader.conf" <<EOF
-# Renux live/installer ISO boot configuration: go straight to a single-user
-# root shell (the ISO will host the installer).
+# Renux live/installer ISO boot configuration: boot multi-user so rc(8)
+# mounts the tmpfs filesystems from fstab (keeping /tmp & co. writable on
+# the read-only CD).  Log in on the console as root (no password).
 autoboot_delay="2"
-boot_single="YES"
+boot_single="NO"
 loader_logo="renux"
 console="${console}"
 vfs.root.mountfrom="cd9660:/dev/iso9660/RENUX"
@@ -1452,12 +1453,15 @@ EOF
 	    "${etc}/master.passwd.db"
 	# Live-CD fstab: mount the ISO root explicitly (like the FreeBSD live CD).
 	# The root device is the ISO9660 volume labelled RENUX.  tmpfs mounts keep
-	# /tmp and /var/run writable on the read-only CD (mount auto-kldloads the
-	# tmpfs module).
+	# /tmp and /var/run (and other runtime dirs) writable on the read-only CD;
+	# mount(8) auto-kldloads the tmpfs module.
 	cat > "${etc}/fstab" <<'EOF'
 /dev/iso9660/RENUX	/	cd9660	ro	0 0
-tmpfs			/tmp	tmpfs	rw,mode=1777	0 0
-tmpfs			/var/run	tmpfs	rw		0 0
+tmpfs			/tmp	tmpfs	rw,nodev,nosuid,mode=1777	0 0
+tmpfs			/var/run	tmpfs	rw,nodev,nosuid		0 0
+tmpfs			/var/tmp	tmpfs	rw,nodev,nosuid		0 0
+tmpfs			/var/log	tmpfs	rw,nodev,nosuid		0 0
+tmpfs			/var/db	tmpfs	rw,nodev,nosuid		0 0
 EOF
 	# Make every console tty "secure" so root may log in with the password.
 	if [ -f "${etc}/ttys" ]; then
@@ -1468,6 +1472,7 @@ EOF
 	# Load tmpfs early so the live fstab mounts (/var/run, /tmp, ...) work.
 	cat > "${etc}/rc.conf" <<'EOF'
 hostname="renux"
+kld_list="tmpfs"
 EOF
 	# Best-effort passwd database regeneration (the flat /etc/passwd already
 	# contains root, so this only helps when /etc is writable).
