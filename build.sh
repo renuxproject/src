@@ -1449,12 +1449,11 @@ EOF
 	rm -f "${etc}/passwd.db" "${etc}/pwd.db" "${etc}/spwd.db" \
 	    "${etc}/master.passwd.db"
 	# Live-CD fstab: mount the writable directories on tmpfs since the ISO
-	# root is read-only.
+	# root is read-only.  Mountpoints are created below (fix_world_root_perms).
 	cat > "${etc}/fstab" <<'EOF'
 tmpfs	/tmp		tmpfs	rw,nosuid,mode=01777	0 0
 tmpfs	/var/run	tmpfs	rw,nosuid		0 0
 tmpfs	/var/tmp	tmpfs	rw,nosuid,mode=01777	0 0
-tmpfs	/var/run/devd	tmpfs	rw,nosuid		0 0
 tmpfs	/var/log	tmpfs	rw,nosuid		0 0
 tmpfs	/var/db		tmpfs	rw,nosuid		0 0
 EOF
@@ -1469,16 +1468,25 @@ EOF
 
 # Fix ownership/permissions of the installed world root.  On a cross-build the
 # install wrapper cannot set -o/-g, so files end up owned by the build user;
-# FreeBSD's login/pam/mtree refuse that.  Restore root ownership here.
+# FreeBSD's login/pam/mtree refuse that.  Restore root ownership here (the CI
+# runs as a non-root user, so fall back to sudo when needed).
 fix_world_root_perms()
 {
 	if [ "${runcmd}" = echo ]; then
-		echo "chown -R 0:0 ${WORLDDIR} + mtree"
+		echo "chown -R 0:0 ${WORLDDIR} + create tmpfs mountpoints"
 		return 0
 	fi
+	mkdir -p "${WORLDDIR}/tmp" "${WORLDDIR}/var/run" "${WORLDDIR}/var/tmp" \
+	    "${WORLDDIR}/var/log" "${WORLDDIR}/var/db" 2>/dev/null || :
 	if command -v chown >/dev/null 2>&1; then
-		chown -R 0:0 "${WORLDDIR}" 2>/dev/null ||
-		    statusmsg "warning: could not chown world root (not running as root?)"
+		if chown -R 0:0 "${WORLDDIR}" 2>/dev/null; then
+			:
+		elif command -v sudo >/dev/null 2>&1 && \
+		    sudo chown -R 0:0 "${WORLDDIR}" 2>/dev/null; then
+			:
+		else
+			statusmsg "warning: could not chown world root (not running as root?)"
+		fi
 	else
 		statusmsg "warning: chown not available on ${host_os}"
 	fi
