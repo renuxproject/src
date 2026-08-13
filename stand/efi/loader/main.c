@@ -1310,17 +1310,19 @@ main(int argc, CHAR16 *argv[])
 #define	CON_MASK	(RB_SERIAL | RB_MULTIPLE)
 	if (strcmp(getenv("console"), "efi") == 0) {
 		if ((howto & CON_MASK) == 0) {
-			/* No override, uhowto is controlling and efi cons is perfect */
-			howto = howto | (uhowto & CON_MASK);
+			/* No serial override: the user asked for the EFI video console,
+			 * so keep video primary (do not inherit the serial console the
+			 * firmware advertises via ConOut). */
+			howto &= ~CON_MASK;
 		} else if ((howto & CON_MASK) == (uhowto & CON_MASK)) {
 			/* override matches what UEFI told us, efi console is perfect */
 		} else if ((uhowto & (CON_MASK)) != 0) {
 			/*
-			 * We detected a serial console on ConOut. All possible
-			 * overrides include serial. We can't really override what efi
-			 * gives us, so we use it knowing it's the best choice.
+			 * The user explicitly asked for the EFI video console in
+			 * loader.conf (console="efi"), so honor that and drop the
+			 * serial console detected via ConOut: video becomes primary.
 			 */
-			/* Do nothing */
+			howto &= ~CON_MASK;
 		} else {
 			/*
 			 * We detected some kind of serial in the override, but ConOut
