@@ -1448,12 +1448,10 @@ operator:*:5:
 EOF
 	rm -f "${etc}/passwd.db" "${etc}/pwd.db" "${etc}/spwd.db" \
 	    "${etc}/master.passwd.db"
-	# Live-CD fstab: the ISO root is read-only.  Memory filesystems (tmpfs and
-	# mfs/md) are currently broken in the cross-build, so leave the writable
-	# dirs unmounted to avoid aborting the boot; they stay read-only.
+	# Live-CD fstab: mount the ISO root explicitly (like the FreeBSD live CD).
+	# The root device is the ISO9660 volume labelled RENUX.
 	cat > "${etc}/fstab" <<'EOF'
-# Renux live ISO: root is read-only (cd9660).  Memory filesystems are not
-# mounted here because the cross-built tmpfs/md support is not reliable yet.
+/dev/iso9660/RENUX	/	cd9660	ro	0 0
 EOF
 	# Make every console tty "secure" so root may log in with the password.
 	if [ -f "${etc}/ttys" ]; then
