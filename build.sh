@@ -1448,14 +1448,15 @@ operator:*:5:
 EOF
 	rm -f "${etc}/passwd.db" "${etc}/pwd.db" "${etc}/spwd.db" \
 	    "${etc}/master.passwd.db"
-	# Live-CD fstab: mount the writable directories on tmpfs since the ISO
-	# root is read-only.  Mountpoints are created below (fix_world_root_perms).
+	# Live-CD fstab: mount the writable directories on memory (mfs/md) since
+	# the ISO root is read-only.  Uses the built-in md device, avoiding the
+	# tmpfs.ko module (which the cross-build does not link correctly).
 	cat > "${etc}/fstab" <<'EOF'
-tmpfs	/tmp		tmpfs	rw,nosuid,mode=01777	0 0
-tmpfs	/var/run	tmpfs	rw,nosuid		0 0
-tmpfs	/var/tmp	tmpfs	rw,nosuid,mode=01777	0 0
-tmpfs	/var/log	tmpfs	rw,nosuid		0 0
-tmpfs	/var/db		tmpfs	rw,nosuid		0 0
+md	/tmp		mfs	rw,nodev,nosuid,noexec	0 0
+md	/var/run	mfs	rw,nodev,nosuid		0 0
+md	/var/tmp	mfs	rw,nodev,nosuid,noexec	0 0
+md	/var/log	mfs	rw,nodev,nosuid		0 0
+md	/var/db		mfs	rw,nodev,nosuid		0 0
 EOF
 	# Make every console tty "secure" so root may log in with the password.
 	if [ -f "${etc}/ttys" ]; then
@@ -1466,15 +1467,13 @@ EOF
 	# Load tmpfs early so the live fstab mounts (/var/run, /tmp, ...) work.
 	cat > "${etc}/rc.conf" <<'EOF'
 hostname="renux"
-kld_list="tmpfs"
 EOF
-	# Regenerate the passwd databases from master.passwd on first boot so
-	# getpwnam() finds root even without a prebuilt passwd.db.
+	# Best-effort passwd database regeneration (the flat /etc/passwd already
+	# contains root, so this only helps when /etc is writable).
 	cat > "${etc}/rc.local" <<'EOF'
-if [ ! -f /etc/master.passwd.db ]; then
-	/usr/sbin/pwd_mkdb -p /etc/master.passwd 2>/dev/null
-fi
+/usr/sbin/pwd_mkdb -p /etc/master.passwd 2>/dev/null
 EOF
+	chmod 755 "${etc}/rc.local" 2>/dev/null || :
 	chmod 755 "${etc}/rc.local" 2>/dev/null || :
 	statusmsg "Configured root login (password: renux) in ${etc}"
 }
