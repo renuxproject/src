@@ -98,7 +98,9 @@ jobs:
           fi
           for attempt in 1 2 3 4; do
             echo "::group::build attempt ${attempt}"
-            if ./build.sh -j "$NPROC" -I release $TARGETS; then
+            # Run as root so installworld -U produces root-owned files in the
+            # world root (the cross-build install wrapper can't set -o/-g).
+            if sudo -E ./build.sh -j "$NPROC" -I release $TARGETS; then
               echo "::endgroup::"
               exit 0
             fi
