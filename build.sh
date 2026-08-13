@@ -1448,15 +1448,12 @@ operator:*:5:
 EOF
 	rm -f "${etc}/passwd.db" "${etc}/pwd.db" "${etc}/spwd.db" \
 	    "${etc}/master.passwd.db"
-	# Live-CD fstab: mount the writable directories on memory (mfs/md) since
-	# the ISO root is read-only.  Uses the built-in md device, avoiding the
-	# tmpfs.ko module (which the cross-build does not link correctly).
+	# Live-CD fstab: the ISO root is read-only.  Memory filesystems (tmpfs and
+	# mfs/md) are currently broken in the cross-build, so leave the writable
+	# dirs unmounted to avoid aborting the boot; they stay read-only.
 	cat > "${etc}/fstab" <<'EOF'
-md	/tmp		mfs	rw,nodev,nosuid,noexec	0 0
-md	/var/run	mfs	rw,nodev,nosuid		0 0
-md	/var/tmp	mfs	rw,nodev,nosuid,noexec	0 0
-md	/var/log	mfs	rw,nodev,nosuid		0 0
-md	/var/db		mfs	rw,nodev,nosuid		0 0
+# Renux live ISO: root is read-only (cd9660).  Memory filesystems are not
+# mounted here because the cross-built tmpfs/md support is not reliable yet.
 EOF
 	# Make every console tty "secure" so root may log in with the password.
 	if [ -f "${etc}/ttys" ]; then
