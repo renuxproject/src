@@ -1457,11 +1457,11 @@ EOF
 	# mount(8) auto-kldloads the tmpfs module.
 	cat > "${etc}/fstab" <<'EOF'
 /dev/iso9660/RENUX	/	cd9660	ro	0 0
-tmpfs			/tmp	tmpfs	rw,nodev,nosuid,mode=1777	0 0
-tmpfs			/var/run	tmpfs	rw,nodev,nosuid		0 0
-tmpfs			/var/tmp	tmpfs	rw,nodev,nosuid		0 0
-tmpfs			/var/log	tmpfs	rw,nodev,nosuid		0 0
-tmpfs			/var/db	tmpfs	rw,nodev,nosuid		0 0
+tmpfs			/tmp	tmpfs	rw,nosuid,mode=1777	0 0
+tmpfs			/var/run	tmpfs	rw,nosuid		0 0
+tmpfs			/var/tmp	tmpfs	rw,nosuid		0 0
+tmpfs			/var/log	tmpfs	rw,nosuid		0 0
+tmpfs			/var/db	tmpfs	rw,nosuid		0 0
 EOF
 	# Make every console tty "secure" so root may log in with the password.
 	if [ -f "${etc}/ttys" ]; then
@@ -1473,6 +1473,8 @@ EOF
 	cat > "${etc}/rc.conf" <<'EOF'
 hostname="renux"
 kld_list="tmpfs"
+# The root is a read-only CD; skip writing /etc/hostid and /etc/machine-id.
+hostid_enable="NO"
 EOF
 	# Best-effort passwd database regeneration (the flat /etc/passwd already
 	# contains root, so this only helps when /etc is writable).
