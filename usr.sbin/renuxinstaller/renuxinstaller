@@ -161,8 +161,10 @@ newfs -U -O 2 -L rootfs "$ROOT" >/dev/null || { echo "error: newfs failed"; exit
 ############################################################ Mount
 
 echo "Mounting ${BSDINSTALL_CHROOT}..."
-mkdir -p "${BSDINSTALL_CHROOT}/boot/efi" 2>/dev/null
 mount "$ROOT" "${BSDINSTALL_CHROOT}" || { echo "error: mount root failed"; exit 1; }
+# The mountpoint must exist inside the target root (after mounting), otherwise
+# the freshly-formatted empty UFS hides it.
+mkdir -p "${BSDINSTALL_CHROOT}/boot/efi"
 mount -t msdosfs "$ESP" "${BSDINSTALL_CHROOT}/boot/efi" ||
     { echo "error: mount ESP failed"; exit 1; }
 
