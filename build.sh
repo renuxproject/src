@@ -1469,8 +1469,6 @@ EOF
 	cat > "${etc}/rc.conf" <<'EOF'
 hostname="renux"
 hostid_enable="NO"
-# /etc is a read-only CD, so keep the staged motd and skip regeneration.
-update_motd="NO"
 EOF
 	# Best-effort passwd database regeneration (the flat /etc/passwd already
 	# contains root, so this only helps when /etc is writable).
@@ -1480,8 +1478,11 @@ EOF
 	chmod 755 "${etc}/rc.local" 2>/dev/null || :
 	chmod 755 "${etc}/rc.local" 2>/dev/null || :
 	# Renux welcome banner shown at login (replaces the FreeBSD motd), pointing
-	# to the source code and the website.
-	cat > "${etc}/motd" <<'EOF'
+	# to the source code and the website.  login(1) and _PATH_MOTDFILE both
+	# read /var/run/motd, which rc.d/motd generates from /etc/motd.template at
+	# boot (update_motd is left enabled).  /etc/motd is a symlink to it so
+	# rc.d/motd skips the read-only /etc symlink step.
+	cat > "${etc}/motd.template" <<'EOF'
 Welcome to Renux!
 
 Renux is a modern BSD operating system - easy to maintain and debug, built
@@ -1490,17 +1491,9 @@ for portability and performance, and community-driven and decentralized.
 Source code:  https://github.com/renuxproject/src
 Website:      https://renuxproject.github.io
 EOF
-	cat "${etc}/motd" > "${etc}/motd.template" 2>/dev/null || :
-	# login(1) shows the file named by the "welcome" capability in
-	# /etc/login.conf.  Point it at /etc/motd (the default points to
-	# /var/run/motd, which is never generated with update_motd=NO).
-	if [ -f "${etc}/login.conf" ]; then
-		sed 's#:welcome=/var/run/motd:#:welcome=/etc/motd:#' \
-		    "${etc}/login.conf" > "${etc}/login.conf.new" && \
-		    mv -f "${etc}/login.conf.new" "${etc}/login.conf"
-	fi
-	# The colored Gentoo-style prompt is shipped in the default .shrc template
-	# (bin/sh/dot.shrc -> /root/.shrc), so it applies to every interactive shell.
+	chmod 644 "${etc}/motd.template" 2>/dev/null || :
+	rm -f "${etc}/motd"
+	ln -s /var/run/motd "${etc}/motd" 2>/dev/null || :
 	statusmsg "Configured root login (no password) in ${etc}"
 }
 
