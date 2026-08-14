@@ -1469,11 +1469,10 @@ EOF
 		    "${etc}/ttys" > "${etc}/ttys.new" && \
 		    mv -f "${etc}/ttys.new" "${etc}/ttys"
 	fi
-	# Load tmpfs early so the live fstab mounts (/var/run, /tmp, ...) work.
+	# tmpfs is built into the kernel, so the fstab mounts work without
+	# kldload; the live root is a read-only CD, so skip writing /etc/hostid.
 	cat > "${etc}/rc.conf" <<'EOF'
 hostname="renux"
-kld_list="tmpfs"
-# The root is a read-only CD; skip writing /etc/hostid and /etc/machine-id.
 hostid_enable="NO"
 EOF
 	# Best-effort passwd database regeneration (the flat /etc/passwd already
@@ -1503,7 +1502,11 @@ generate_passwd_db()
 	mobj_abs="$(cd "${MAKEOBJDIRPREFIX}" && pwd)"
 	pwdmkdb="${mobj_abs}${srcdir_abs}/tmp/legacy/usr/sbin/pwd_mkdb"
 	if [ ! -x "${pwdmkdb}" ]; then
-		statusmsg "warning: host pwd_mkdb not found at ${pwdmkdb}; skipping passwd db generation"
+		pwdmkdb="$(find "${MAKEOBJDIRPREFIX}" -type f -name pwd_mkdb \
+		    -path '*/tmp/legacy/usr/sbin/pwd_mkdb' 2>/dev/null | head -n1)"
+	fi
+	if [ -z "${pwdmkdb}" ] || [ ! -x "${pwdmkdb}" ]; then
+		statusmsg "warning: host pwd_mkdb not found; skipping passwd db generation"
 		return 0
 	fi
 	"${pwdmkdb}" -d "${WORLDDIR}/etc" "${WORLDDIR}/etc/master.passwd" ||
