@@ -69,6 +69,12 @@ For copyright information, please see [the file COPYRIGHT](COPYRIGHT) in this di
 For information on the CPU architectures and platforms supported by the
 Renux project, see the documentation shipped with this tree.
 
+Hacking:
+--------
+Renux is designed to be hacked. See [docs/HACKING.md](docs/HACKING.md) for
+building, runtime tuning (sysctl), kernel modules (kld), DTrace and kernel
+debugging - no recompiling required for most of it.
+
 Source Roadmap:
 ---------------
 | Directory | Description |
