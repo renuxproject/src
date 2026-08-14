@@ -1524,16 +1524,8 @@ EOF
 		    "${etc}/login.conf" > "${etc}/login.conf.new" && \
 		    mv -f "${etc}/login.conf.new" "${etc}/login.conf"
 	fi
-	# The interactive-shell rc file ($ENV) runs after /etc/profile and would
-	# otherwise reset PS1 to the plain FreeBSD prompt; make the colored
-	# Gentoo-style prompt win there too.
-	if [ -f "${WORLDDIR}/root/.shrc" ]; then
-		cat >> "${WORLDDIR}/root/.shrc" <<'EOF'
-
-# Gentoo-style colored prompt (Renux)
-PS1='\[\033[01;31m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] '
-EOF
-	fi
+	# The colored Gentoo-style prompt is shipped in the default .shrc template
+	# (bin/sh/dot.shrc -> /root/.shrc), so it applies to every interactive shell.
 	statusmsg "Configured root login (no password) in ${etc}"
 }
 
