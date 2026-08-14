@@ -1,0 +1,179 @@
+#!/bin/sh
+#-
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 The Renux Project.
+#
+# renuxinstaller - install Renux to a disk by cloning the running live system.
+#
+# Partitions the target disk (GPT + EFI System Partition + UFS root), formats
+# it, copies the live world to it, installs the boot loader and writes a
+# proper /etc/fstab and /boot/loader.conf.  No distribution sets are needed.
+#
+# Usage: bsdinstall renuxinstaller [/dev/disk]
+
+BSDCFG_SHARE="/usr/share/bsdconfig"
+. $BSDCFG_SHARE/common.subr || exit 1
+
+: ${BSDINSTALL_CHROOT:="/mnt"}
+: ${TMPDIR:="/tmp"}
+: ${ESP_SIZE:="128m"}
+
+LIVE_ROOT="$(mount | awk '$3 == "/" { print $1; exit }')"
+
+############################################################ UI helpers
+
+f_msg()
+{
+	if command -v bsddialog >/dev/null 2>&1; then
+		bsddialog --backtitle "Renux Installer" --title "$1" --msgbox "$2" 0 0
+	else
+		echo "*** $1"
+		echo "$2"
+	fi
+}
+
+f_confirm()
+{
+	local ans
+	if command -v bsddialog >/dev/null 2>&1; then
+		bsddialog --backtitle "Renux Installer" --title "$1" \
+		    --yesno "$2" 0 0
+	else
+		echo "*** $1"
+		echo "$2"
+		printf 'Type YES to continue: '
+		read ans
+		[ "$ans" = "YES" ]
+	fi
+}
+
+f_prompt()
+{
+	local val
+	if command -v bsddialog >/dev/null 2>&1; then
+		val=$(bsddialog --backtitle "Renux Installer" --title "$1" \
+		    --inputbox "$2" 0 0 "$3" 2>&1 >/dev/tty)
+	else
+		echo "*** $1"
+		printf '%s [%s]: ' "$2" "$3"
+		read val
+		[ -z "$val" ] && val="$3"
+	fi
+	echo "$val"
+}
+
+############################################################ Target disk
+
+TARGET="${1:-}"
+while [ -z "$TARGET" ]; do
+	echo ""
+	echo "Disks available on this system:"
+	for d in /dev/ada[0-9]* /dev/da[0-9]* /dev/vtbd[0-9]* \
+	    /dev/nvd[0-9]* /dev/nvme[0-9]*ns[0-9]*; do
+		[ -e "$d" ] && echo "    $d"
+	done
+	TARGET=$(f_prompt "Target Disk" "Install Renux to which disk?" \
+	    "/dev/ada0")
+done
+[ -e "$TARGET" ] || { echo "error: $TARGET does not exist"; exit 1; }
+
+# Refuse to install over the media we are booting from.
+case "$LIVE_ROOT" in
+"$TARGET"*)
+	echo "error: $TARGET is the live media ($LIVE_ROOT); refusing to overwrite"
+	exit 1
+	;;
+esac
+
+f_confirm "Warning" \
+	"This will DESTROY ALL DATA on $TARGET and install Renux on it.\n\n$TARGET" || {
+	echo "Install aborted."
+	exit 1
+}
+
+############################################################ Partition
+
+echo "Partitioning $TARGET (GPT: ESP + UFS root)..."
+gpart destroy -F "$TARGET" 2>/dev/null
+gpart create -s gpt "$TARGET" || { echo "error: gpart create failed"; exit 1; }
+gpart add -t efi -a 4k -s "$ESP_SIZE" -l efiboot "$TARGET" ||
+    { echo "error: could not add ESP partition"; exit 1; }
+gpart add -t freebsd-ufs -a 4k -l rootfs "$TARGET" ||
+    { echo "error: could not add root partition"; exit 1; }
+
+ESP="/dev/gpt/efiboot"
+ROOT="/dev/gpt/rootfs"
+
+############################################################ Filesystems
+
+echo "Creating filesystems..."
+newfs_msdos -L RENUX "$ESP" >/dev/null || { echo "error: newfs_msdos failed"; exit 1; }
+newfs -U -O 2 -L rootfs "$ROOT" >/dev/null || { echo "error: newfs failed"; exit 1; }
+
+############################################################ Mount
+
+echo "Mounting ${BSDINSTALL_CHROOT}..."
+mkdir -p "${BSDINSTALL_CHROOT}/boot/efi" 2>/dev/null
+mount "$ROOT" "${BSDINSTALL_CHROOT}" || { echo "error: mount root failed"; exit 1; }
+mount -t msdosfs "$ESP" "${BSDINSTALL_CHROOT}/boot/efi" ||
+    { echo "error: mount ESP failed"; exit 1; }
+
+############################################################ Clone the live world
+
+echo "Cloning the live system to ${BSDINSTALL_CHROOT} (this may take a while)..."
+(
+	cd / || exit 1
+	tar -cf - --exclude=./${BSDINSTALL_CHROOT#/} --exclude=./dev \
+	    --exclude=./proc --exclude=./sys --exclude=./tmp --exclude=./mnt \
+	    --exclude=./var/run --exclude=./var/log --exclude=./var/tmp \
+	    --exclude=./var/db .
+) | ( cd "${BSDINSTALL_CHROOT}" && tar -xf - ) ||
+    { echo "error: failed to clone the live system"; umount -a; exit 1; }
+
+# Make sure the runtime directories exist on the target.
+mkdir -p "${BSDINSTALL_CHROOT}/tmp" "${BSDINSTALL_CHROOT}/var/run" \
+    "${BSDINSTALL_CHROOT}/var/log" "${BSDINSTALL_CHROOT}/var/tmp" \
+    "${BSDINSTALL_CHROOT}/var/db" 2>/dev/null
+
+############################################################ Boot loader
+
+echo "Installing the boot loader..."
+mkdir -p "${BSDINSTALL_CHROOT}/boot/efi/EFI/BOOT"
+if [ -f /boot/loader ]; then
+	cp /boot/loader "${BSDINSTALL_CHROOT}/boot/efi/EFI/BOOT/BOOTX64.EFI" ||
+	    { echo "error: could not copy loader"; }
+else
+	echo "warning: /boot/loader not found on the live media"
+fi
+
+cat > "${BSDINSTALL_CHROOT}/boot/loader.conf" <<'EOF'
+autoboot_delay="2"
+loader_logo="renux"
+console="efi"
+EOF
+
+############################################################ /etc/fstab
+
+cat > "${BSDINSTALL_CHROOT}/etc/fstab" <<EOF
+$ROOT		/		ufs	rw	1 1
+$ESP		/boot/efi	msdosfs	rw	2 2
+EOF
+
+############################################################ Root password
+
+if f_confirm "Root password" \
+    "Set a password for root now? (NO keeps the empty live password)"; then
+	chroot "${BSDINSTALL_CHROOT}" passwd root 2>/dev/null ||
+	    echo "warning: could not set the root password"
+fi
+
+############################################################ Finish
+
+sync
+umount "${BSDINSTALL_CHROOT}/boot/efi" 2>/dev/null
+umount "${BSDINSTALL_CHROOT}" 2>/dev/null
+
+f_msg "Installation complete" \
+	"Renux has been installed to $TARGET.\n\nYou can now reboot into your new system."
+
+exit 0
