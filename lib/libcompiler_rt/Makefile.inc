@@ -265,7 +265,7 @@ SRCF+=		truncsfbf2
 
 # FreeBSD-specific atomic intrinsics.
 .if ${MACHINE_CPUARCH} == "arm"
-.PATH:		${SRCTOP}/sys/arm/arm
+.PATH:		${SRCTOP}/sys/arch/arm/arm
 
 SRCF+=		stdatomic
 CFLAGS+=	-DEMIT_SYNC_ATOMICS

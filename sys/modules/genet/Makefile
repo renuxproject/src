@@ -1,4 +1,4 @@
-.PATH: ${SRCTOP}/sys/arm64/broadcom/genet
+.PATH: ${SRCTOP}/sys/arch/arm64/broadcom/genet
 
 KMOD=	if_genet
 SRCS=	if_genet.c

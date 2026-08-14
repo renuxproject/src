@@ -1,4 +1,4 @@
-.PATH: ${SRCTOP}/sys/arm/ti/am335x
+.PATH: ${SRCTOP}/sys/arch/arm/ti/am335x
 
 KMOD=	am335x_ehrpwm
 SRCS=	am335x_ehrpwm.c

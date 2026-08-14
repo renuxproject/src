@@ -1,4 +1,4 @@
-.PATH: ${SRCTOP}/sys/arm/allwinner
+.PATH: ${SRCTOP}/sys/arch/arm/allwinner
 
 KMOD=	if_awg
 SRCS=	if_awg.c

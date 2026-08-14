@@ -48,7 +48,7 @@ SRCS+=	smist.c
 .endif
 
 .if ${MACHINE} == "powerpc"
-.PATH:	${SRCTOP}/sys/powerpc/cpufreq
+.PATH:	${SRCTOP}/sys/arch/powerpc/cpufreq
 SRCS+= dfs.c
 .endif
 

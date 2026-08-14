@@ -43,7 +43,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "../../sys/arm/include/minidump.h"
+#include "../../sys/arch/arm/include/minidump.h"
 
 #include "kvm_private.h"
 #include "kvm_arm.h"

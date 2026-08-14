@@ -1,4 +1,4 @@
-.PATH: ${SRCTOP}/sys/arm/allwinner
+.PATH: ${SRCTOP}/sys/arch/arm/allwinner
 
 KMOD=	aw_mmc
 SRCS=	aw_mmc.c

@@ -2,7 +2,7 @@
 #
 
 .PATH: ${SRCTOP}/sys/dev/hwpmc
-.PATH: ${SRCTOP}/sys/arm64/arm64
+.PATH: ${SRCTOP}/sys/arch/arm64/arm64
 
 KMOD=	hwpmc
 

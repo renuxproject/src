@@ -39,7 +39,7 @@
 #include <vm/vm.h>
 #include <kvm.h>
 
-#include "../../sys/i386/include/minidump.h"
+#include "../../sys/arch/i386/include/minidump.h"
 
 #include <limits.h>
 

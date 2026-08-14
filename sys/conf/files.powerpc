@@ -254,182 +254,182 @@ libkern/strncmp.c		standard
 libkern/ucmpdi2.c		optional	powerpc | powerpcspe
 libkern/udivdi3.c		optional	powerpc | powerpcspe
 libkern/umoddi3.c		optional	powerpc | powerpcspe
-powerpc/aim/locore.S		optional	aim no-obj
-powerpc/aim/aim_machdep.c	optional	aim
-powerpc/aim/mmu_oea.c		optional	aim powerpc
-powerpc/aim/mmu_oea64.c		optional	aim
-powerpc/aim/mmu_radix.c		optional	aim powerpc64 | aim powerpc64le
-powerpc/aim/moea64_native.c	optional	aim
-powerpc/aim/mp_cpudep.c		optional	aim
-powerpc/aim/slb.c		optional	aim powerpc64 | aim powerpc64le
-powerpc/amigaone/platform_amigaone.c	optional	amigaone
-powerpc/amigaone/cpld_a1222.c	optional	powerpc amigaone | powerpcspe amigaone
-powerpc/amigaone/cpld_x5000.c	optional	powerpc amigaone | powerpc64 amigaone
-powerpc/booke/locore.S		optional	booke no-obj
-powerpc/booke/booke_machdep.c	optional	booke
-powerpc/booke/machdep_e500.c	optional	booke_e500
-powerpc/booke/mp_cpudep.c	optional	booke smp
-powerpc/booke/platform_bare.c	optional	booke
-powerpc/booke/pmap.c		optional	booke
-powerpc/booke/spe.c		optional	powerpcspe
-powerpc/cpufreq/dfs.c		optional	cpufreq
-powerpc/cpufreq/mpc85xx_jog.c	optional	cpufreq mpc85xx
-powerpc/cpufreq/pcr.c		optional	cpufreq aim
-powerpc/cpufreq/pmcr.c		optional	cpufreq aim powerpc64 | cpufreq aim powerpc64le
-powerpc/cpufreq/pmufreq.c	optional	cpufreq aim pmu
-powerpc/fpu/fpu_add.c		optional	fpu_emu | powerpcspe
-powerpc/fpu/fpu_compare.c	optional	fpu_emu | powerpcspe
-powerpc/fpu/fpu_div.c		optional	fpu_emu | powerpcspe
-powerpc/fpu/fpu_emu.c		optional	fpu_emu
-powerpc/fpu/fpu_explode.c	optional	fpu_emu | powerpcspe
-powerpc/fpu/fpu_implode.c	optional	fpu_emu | powerpcspe
-powerpc/fpu/fpu_mul.c		optional	fpu_emu | powerpcspe
-powerpc/fpu/fpu_sqrt.c		optional	fpu_emu
-powerpc/fpu/fpu_subr.c		optional	fpu_emu | powerpcspe
-powerpc/mambo/mambocall.S	optional	mambo
-powerpc/mambo/mambo.c		optional	mambo
-powerpc/mambo/mambo_console.c	optional	mambo
-powerpc/mambo/mambo_disk.c	optional	mambo
-powerpc/mikrotik/platform_rb.c	optional	mikrotik
-powerpc/mikrotik/rb_led.c	optional	mikrotik
-powerpc/mpc85xx/atpic.c		optional	mpc85xx isa
-powerpc/mpc85xx/ds1553_bus_fdt.c	optional	ds1553
-powerpc/mpc85xx/ds1553_core.c	optional	ds1553
-powerpc/mpc85xx/fsl_diu.c	optional	mpc85xx diu
-powerpc/mpc85xx/fsl_espi.c	optional	mpc85xx spibus
-powerpc/mpc85xx/fsl_sata.c	optional	mpc85xx ata
-powerpc/mpc85xx/i2c.c		optional	mpc85xx iicbus
-powerpc/mpc85xx/isa.c		optional	mpc85xx isa
-powerpc/mpc85xx/lbc.c		optional	mpc85xx
-powerpc/mpc85xx/mpc85xx.c	optional	mpc85xx
-powerpc/mpc85xx/mpc85xx_cache.c	optional	mpc85xx
-powerpc/mpc85xx/mpc85xx_gpio.c	optional	mpc85xx gpio
-powerpc/mpc85xx/platform_mpc85xx.c	optional	mpc85xx
-powerpc/mpc85xx/pci_mpc85xx.c	optional	pci mpc85xx
-powerpc/mpc85xx/pci_mpc85xx_pcib.c	optional	pci mpc85xx
-powerpc/ofw/ofw_machdep.c	standard
-powerpc/ofw/ofw_pcibus.c	optional	pci
-powerpc/ofw/ofw_pcib_pci.c	optional	pci
-powerpc/ofw/ofw_real.c		optional	aim
-powerpc/ofw/ofw_syscons.c	optional	sc aim
-powerpc/ofw/ofwcall32.S		optional	aim powerpc
-powerpc/ofw/ofwcall64.S		optional	aim powerpc64 | aim powerpc64le
-powerpc/ofw/openpic_ofw.c	standard
-powerpc/ofw/rtas.c		optional	aim
-powerpc/ofw/ofw_initrd.c	optional	md_root_mem powerpc64 | md_root_mem powerpc64le
-powerpc/powermac/ata_kauai.c	optional	powermac ata | powermac atamacio
-powerpc/powermac/ata_macio.c	optional	powermac ata | powermac atamacio
-powerpc/powermac/ata_dbdma.c	optional	powermac ata | powermac atamacio
-powerpc/powermac/atibl.c	optional	powermac atibl
-powerpc/powermac/cuda.c		optional	powermac cuda
-powerpc/powermac/cpcht.c	optional	powermac pci
-powerpc/powermac/dbdma.c	optional	powermac pci
-powerpc/powermac/fcu.c		optional	powermac fcu
-powerpc/powermac/grackle.c	optional	powermac pci
-powerpc/powermac/hrowpic.c	optional	powermac pci
-powerpc/powermac/kiic.c		optional	powermac kiic
-powerpc/powermac/macgpio.c	optional	powermac pci 
-powerpc/powermac/macio.c	optional	powermac pci
-powerpc/powermac/nvbl.c		optional	powermac nvbl
-powerpc/powermac/platform_powermac.c optional	powermac
-powerpc/powermac/powermac_thermal.c optional	powermac
-powerpc/powermac/pswitch.c	optional	powermac pswitch
-powerpc/powermac/pmu.c		optional	powermac pmu 
-powerpc/powermac/smu.c		optional	powermac smu 
-powerpc/powermac/smusat.c	optional	powermac smu
-powerpc/powermac/tbgpio.c	optional	powermac pci smp
-powerpc/powermac/uninorth.c	optional	powermac
-powerpc/powermac/uninorthpci.c	optional	powermac pci
-powerpc/powermac/vcoregpio.c	optional	powermac 
-powerpc/powernv/opal.c		optional	powernv
-powerpc/powernv/opal_async.c	optional	powernv
-powerpc/powernv/opal_console.c	optional	powernv
-powerpc/powernv/opal_dbg.c	optional	powernv gdb
-powerpc/powernv/opal_dev.c	optional	powernv
-powerpc/powernv/opal_flash.c	optional	powernv opalflash
-powerpc/powernv/opal_hmi.c	optional	powernv
-powerpc/powernv/opal_i2c.c	optional	iicbus fdt powernv
-powerpc/powernv/opal_i2cm.c	optional	iicbus fdt powernv
-powerpc/powernv/opal_nvram.c	optional	powernv nvram
-powerpc/powernv/opal_pci.c	optional	powernv pci
-powerpc/powernv/opal_sensor.c	optional	powernv
-powerpc/powernv/opalcall.S	optional	powernv
-powerpc/powernv/platform_powernv.c optional	powernv
-powerpc/powernv/powernv_centaur.c	optional	powernv
-powerpc/powernv/powernv_xscom.c	optional	powernv
-powerpc/powernv/xive.c		optional	powernv
-powerpc/powerpc/altivec.c	optional	!powerpcspe
-powerpc/powerpc/autoconf.c	standard
-powerpc/powerpc/bus_machdep.c	standard
-powerpc/powerpc/busdma_machdep.c standard
-powerpc/powerpc/clock.c		standard
-powerpc/powerpc/copyinout.c	optional	aim
-powerpc/powerpc/cpu.c		standard
-powerpc/powerpc/cpu_subr64.S	optional	powerpc64 | powerpc64le
-powerpc/powerpc/db_disasm.c	optional	ddb
-powerpc/powerpc/db_hwwatch.c	optional	ddb
-powerpc/powerpc/db_interface.c	optional	ddb
-powerpc/powerpc/db_trace.c	optional	ddb
-powerpc/powerpc/dump_machdep.c	standard
-powerpc/powerpc/elf32_machdep.c	optional	powerpc | powerpcspe | compat_freebsd32
-powerpc/powerpc/elf64_machdep.c	optional	powerpc64 | powerpc64le
-powerpc/powerpc/exec_machdep.c	standard
-powerpc/powerpc/fpu.c		standard
-powerpc/powerpc/gdb_machdep.c	optional	gdb
-powerpc/powerpc/interrupt.c	standard
-powerpc/powerpc/intr_machdep.c	standard
-powerpc/powerpc/iommu_if.m	standard
-powerpc/powerpc/machdep.c	standard
-powerpc/powerpc/mem.c		optional	mem
-powerpc/powerpc/minidump_machdep.c	optional	powerpc64 | powerpc64le
-powerpc/powerpc/mp_machdep.c	optional	smp
-powerpc/powerpc/nexus.c		standard
-powerpc/powerpc/openpic.c	standard
-powerpc/powerpc/pic_if.m	standard
-powerpc/powerpc/pmap_dispatch.c	standard
-powerpc/powerpc/platform.c	standard
-powerpc/powerpc/platform_if.m	standard
-powerpc/powerpc/ptrace_machdep.c	standard
-powerpc/powerpc/sc_machdep.c	optional	sc
-powerpc/powerpc/sdt_machdep.c	optional	kdtrace_hooks
-powerpc/powerpc/setjmp.S	standard
-powerpc/powerpc/sigcode32.S	optional	powerpc | powerpcspe | compat_freebsd32
-powerpc/powerpc/sigcode64.S	optional	powerpc64 | powerpc64le
-powerpc/powerpc/swtch32.S	optional	powerpc | powerpcspe
-powerpc/powerpc/swtch64.S	optional	powerpc64 | powerpc64le
-powerpc/powerpc/stack_machdep.c	optional	ddb | stack
-powerpc/powerpc/support.S	optional	powerpc64 | powerpc64le | booke
-powerpc/powerpc/syncicache.c	standard
-powerpc/powerpc/sys_machdep.c	standard
-powerpc/powerpc/trap.c		standard
-powerpc/powerpc/uio_machdep.c	standard
-powerpc/powerpc/uma_machdep.c	standard
-powerpc/powerpc/vm_machdep.c	standard
-powerpc/ps3/ehci_ps3.c		optional	ps3 ehci
-powerpc/ps3/ohci_ps3.c		optional	ps3 ohci
-powerpc/ps3/if_glc.c		optional	ps3 glc
-powerpc/ps3/mmu_ps3.c		optional	ps3
-powerpc/ps3/platform_ps3.c	optional	ps3
-powerpc/ps3/ps3bus.c		optional	ps3
-powerpc/ps3/ps3cdrom.c		optional	ps3 scbus
-powerpc/ps3/ps3disk.c		optional	ps3
-powerpc/ps3/ps3pic.c		optional	ps3
-powerpc/ps3/ps3_syscons.c	optional	ps3 vt
-powerpc/ps3/ps3-hvcall.S	optional	ps3
-powerpc/pseries/phyp-hvcall.S	optional	pseries powerpc64 | pseries powerpc64le
-powerpc/pseries/mmu_phyp.c	optional	pseries powerpc64 | pseries powerpc64le
-powerpc/pseries/phyp_console.c	optional	pseries powerpc64 uart | pseries powerpc64le uart
-powerpc/pseries/phyp_dbg.c	optional	pseries powerpc64 gdb | pseries powerpc64le gdb
-powerpc/pseries/phyp_llan.c	optional	llan
-powerpc/pseries/phyp_vscsi.c	optional	pseries powerpc64 scbus | pseries powerpc64le scbus
-powerpc/pseries/platform_chrp.c	optional	pseries
-powerpc/pseries/plpar_iommu.c	optional	pseries powerpc64 | pseries powerpc64le
-powerpc/pseries/plpar_pcibus.c	optional	pseries powerpc64 pci | pseries powerpc64le pci
-powerpc/pseries/rtas_dev.c	optional	pseries
-powerpc/pseries/rtas_pci.c	optional	pseries pci
-powerpc/pseries/vdevice.c	optional	pseries powerpc64 | pseries powerpc64le
-powerpc/pseries/xics.c		optional	pseries powerpc64 | pseries powerpc64le
-powerpc/psim/iobus.c 		optional	psim
-powerpc/psim/ata_iobus.c	optional	ata psim
-powerpc/psim/openpic_iobus.c	optional	psim
-powerpc/psim/uart_iobus.c	optional	uart psim
+arch/powerpc/aim/locore.S		optional	aim no-obj
+arch/powerpc/aim/aim_machdep.c	optional	aim
+arch/powerpc/aim/mmu_oea.c		optional	aim powerpc
+arch/powerpc/aim/mmu_oea64.c		optional	aim
+arch/powerpc/aim/mmu_radix.c		optional	aim powerpc64 | aim powerpc64le
+arch/powerpc/aim/moea64_native.c	optional	aim
+arch/powerpc/aim/mp_cpudep.c		optional	aim
+arch/powerpc/aim/slb.c		optional	aim powerpc64 | aim powerpc64le
+arch/powerpc/amigaone/platform_amigaone.c	optional	amigaone
+arch/powerpc/amigaone/cpld_a1222.c	optional	powerpc amigaone | powerpcspe amigaone
+arch/powerpc/amigaone/cpld_x5000.c	optional	powerpc amigaone | powerpc64 amigaone
+arch/powerpc/booke/locore.S		optional	booke no-obj
+arch/powerpc/booke/booke_machdep.c	optional	booke
+arch/powerpc/booke/machdep_e500.c	optional	booke_e500
+arch/powerpc/booke/mp_cpudep.c	optional	booke smp
+arch/powerpc/booke/platform_bare.c	optional	booke
+arch/powerpc/booke/pmap.c		optional	booke
+arch/powerpc/booke/spe.c		optional	powerpcspe
+arch/powerpc/cpufreq/dfs.c		optional	cpufreq
+arch/powerpc/cpufreq/mpc85xx_jog.c	optional	cpufreq mpc85xx
+arch/powerpc/cpufreq/pcr.c		optional	cpufreq aim
+arch/powerpc/cpufreq/pmcr.c		optional	cpufreq aim powerpc64 | cpufreq aim powerpc64le
+arch/powerpc/cpufreq/pmufreq.c	optional	cpufreq aim pmu
+arch/powerpc/fpu/fpu_add.c		optional	fpu_emu | powerpcspe
+arch/powerpc/fpu/fpu_compare.c	optional	fpu_emu | powerpcspe
+arch/powerpc/fpu/fpu_div.c		optional	fpu_emu | powerpcspe
+arch/powerpc/fpu/fpu_emu.c		optional	fpu_emu
+arch/powerpc/fpu/fpu_explode.c	optional	fpu_emu | powerpcspe
+arch/powerpc/fpu/fpu_implode.c	optional	fpu_emu | powerpcspe
+arch/powerpc/fpu/fpu_mul.c		optional	fpu_emu | powerpcspe
+arch/powerpc/fpu/fpu_sqrt.c		optional	fpu_emu
+arch/powerpc/fpu/fpu_subr.c		optional	fpu_emu | powerpcspe
+arch/powerpc/mambo/mambocall.S	optional	mambo
+arch/powerpc/mambo/mambo.c		optional	mambo
+arch/powerpc/mambo/mambo_console.c	optional	mambo
+arch/powerpc/mambo/mambo_disk.c	optional	mambo
+arch/powerpc/mikrotik/platform_rb.c	optional	mikrotik
+arch/powerpc/mikrotik/rb_led.c	optional	mikrotik
+arch/powerpc/mpc85xx/atpic.c		optional	mpc85xx isa
+arch/powerpc/mpc85xx/ds1553_bus_fdt.c	optional	ds1553
+arch/powerpc/mpc85xx/ds1553_core.c	optional	ds1553
+arch/powerpc/mpc85xx/fsl_diu.c	optional	mpc85xx diu
+arch/powerpc/mpc85xx/fsl_espi.c	optional	mpc85xx spibus
+arch/powerpc/mpc85xx/fsl_sata.c	optional	mpc85xx ata
+arch/powerpc/mpc85xx/i2c.c		optional	mpc85xx iicbus
+arch/powerpc/mpc85xx/isa.c		optional	mpc85xx isa
+arch/powerpc/mpc85xx/lbc.c		optional	mpc85xx
+arch/powerpc/mpc85xx/mpc85xx.c	optional	mpc85xx
+arch/powerpc/mpc85xx/mpc85xx_cache.c	optional	mpc85xx
+arch/powerpc/mpc85xx/mpc85xx_gpio.c	optional	mpc85xx gpio
+arch/powerpc/mpc85xx/platform_mpc85xx.c	optional	mpc85xx
+arch/powerpc/mpc85xx/pci_mpc85xx.c	optional	pci mpc85xx
+arch/powerpc/mpc85xx/pci_mpc85xx_pcib.c	optional	pci mpc85xx
+arch/powerpc/ofw/ofw_machdep.c	standard
+arch/powerpc/ofw/ofw_pcibus.c	optional	pci
+arch/powerpc/ofw/ofw_pcib_pci.c	optional	pci
+arch/powerpc/ofw/ofw_real.c		optional	aim
+arch/powerpc/ofw/ofw_syscons.c	optional	sc aim
+arch/powerpc/ofw/ofwcall32.S		optional	aim powerpc
+arch/powerpc/ofw/ofwcall64.S		optional	aim powerpc64 | aim powerpc64le
+arch/powerpc/ofw/openpic_ofw.c	standard
+arch/powerpc/ofw/rtas.c		optional	aim
+arch/powerpc/ofw/ofw_initrd.c	optional	md_root_mem powerpc64 | md_root_mem powerpc64le
+arch/powerpc/powermac/ata_kauai.c	optional	powermac ata | powermac atamacio
+arch/powerpc/powermac/ata_macio.c	optional	powermac ata | powermac atamacio
+arch/powerpc/powermac/ata_dbdma.c	optional	powermac ata | powermac atamacio
+arch/powerpc/powermac/atibl.c	optional	powermac atibl
+arch/powerpc/powermac/cuda.c		optional	powermac cuda
+arch/powerpc/powermac/cpcht.c	optional	powermac pci
+arch/powerpc/powermac/dbdma.c	optional	powermac pci
+arch/powerpc/powermac/fcu.c		optional	powermac fcu
+arch/powerpc/powermac/grackle.c	optional	powermac pci
+arch/powerpc/powermac/hrowpic.c	optional	powermac pci
+arch/powerpc/powermac/kiic.c		optional	powermac kiic
+arch/powerpc/powermac/macgpio.c	optional	powermac pci 
+arch/powerpc/powermac/macio.c	optional	powermac pci
+arch/powerpc/powermac/nvbl.c		optional	powermac nvbl
+arch/powerpc/powermac/platform_powermac.c optional	powermac
+arch/powerpc/powermac/powermac_thermal.c optional	powermac
+arch/powerpc/powermac/pswitch.c	optional	powermac pswitch
+arch/powerpc/powermac/pmu.c		optional	powermac pmu 
+arch/powerpc/powermac/smu.c		optional	powermac smu 
+arch/powerpc/powermac/smusat.c	optional	powermac smu
+arch/powerpc/powermac/tbgpio.c	optional	powermac pci smp
+arch/powerpc/powermac/uninorth.c	optional	powermac
+arch/powerpc/powermac/uninorthpci.c	optional	powermac pci
+arch/powerpc/powermac/vcoregpio.c	optional	powermac 
+arch/powerpc/powernv/opal.c		optional	powernv
+arch/powerpc/powernv/opal_async.c	optional	powernv
+arch/powerpc/powernv/opal_console.c	optional	powernv
+arch/powerpc/powernv/opal_dbg.c	optional	powernv gdb
+arch/powerpc/powernv/opal_dev.c	optional	powernv
+arch/powerpc/powernv/opal_flash.c	optional	powernv opalflash
+arch/powerpc/powernv/opal_hmi.c	optional	powernv
+arch/powerpc/powernv/opal_i2c.c	optional	iicbus fdt powernv
+arch/powerpc/powernv/opal_i2cm.c	optional	iicbus fdt powernv
+arch/powerpc/powernv/opal_nvram.c	optional	powernv nvram
+arch/powerpc/powernv/opal_pci.c	optional	powernv pci
+arch/powerpc/powernv/opal_sensor.c	optional	powernv
+arch/powerpc/powernv/opalcall.S	optional	powernv
+arch/powerpc/powernv/platform_powernv.c optional	powernv
+arch/powerpc/powernv/powernv_centaur.c	optional	powernv
+arch/powerpc/powernv/powernv_xscom.c	optional	powernv
+arch/powerpc/powernv/xive.c		optional	powernv
+arch/powerpc/powerpc/altivec.c	optional	!powerpcspe
+arch/powerpc/powerpc/autoconf.c	standard
+arch/powerpc/powerpc/bus_machdep.c	standard
+arch/powerpc/powerpc/busdma_machdep.c standard
+arch/powerpc/powerpc/clock.c		standard
+arch/powerpc/powerpc/copyinout.c	optional	aim
+arch/powerpc/powerpc/cpu.c		standard
+arch/powerpc/powerpc/cpu_subr64.S	optional	powerpc64 | powerpc64le
+arch/powerpc/powerpc/db_disasm.c	optional	ddb
+arch/powerpc/powerpc/db_hwwatch.c	optional	ddb
+arch/powerpc/powerpc/db_interface.c	optional	ddb
+arch/powerpc/powerpc/db_trace.c	optional	ddb
+arch/powerpc/powerpc/dump_machdep.c	standard
+arch/powerpc/powerpc/elf32_machdep.c	optional	powerpc | powerpcspe | compat_freebsd32
+arch/powerpc/powerpc/elf64_machdep.c	optional	powerpc64 | powerpc64le
+arch/powerpc/powerpc/exec_machdep.c	standard
+arch/powerpc/powerpc/fpu.c		standard
+arch/powerpc/powerpc/gdb_machdep.c	optional	gdb
+arch/powerpc/powerpc/interrupt.c	standard
+arch/powerpc/powerpc/intr_machdep.c	standard
+arch/powerpc/powerpc/iommu_if.m	standard
+arch/powerpc/powerpc/machdep.c	standard
+arch/powerpc/powerpc/mem.c		optional	mem
+arch/powerpc/powerpc/minidump_machdep.c	optional	powerpc64 | powerpc64le
+arch/powerpc/powerpc/mp_machdep.c	optional	smp
+arch/powerpc/powerpc/nexus.c		standard
+arch/powerpc/powerpc/openpic.c	standard
+arch/powerpc/powerpc/pic_if.m	standard
+arch/powerpc/powerpc/pmap_dispatch.c	standard
+arch/powerpc/powerpc/platform.c	standard
+arch/powerpc/powerpc/platform_if.m	standard
+arch/powerpc/powerpc/ptrace_machdep.c	standard
+arch/powerpc/powerpc/sc_machdep.c	optional	sc
+arch/powerpc/powerpc/sdt_machdep.c	optional	kdtrace_hooks
+arch/powerpc/powerpc/setjmp.S	standard
+arch/powerpc/powerpc/sigcode32.S	optional	powerpc | powerpcspe | compat_freebsd32
+arch/powerpc/powerpc/sigcode64.S	optional	powerpc64 | powerpc64le
+arch/powerpc/powerpc/swtch32.S	optional	powerpc | powerpcspe
+arch/powerpc/powerpc/swtch64.S	optional	powerpc64 | powerpc64le
+arch/powerpc/powerpc/stack_machdep.c	optional	ddb | stack
+arch/powerpc/powerpc/support.S	optional	powerpc64 | powerpc64le | booke
+arch/powerpc/powerpc/syncicache.c	standard
+arch/powerpc/powerpc/sys_machdep.c	standard
+arch/powerpc/powerpc/trap.c		standard
+arch/powerpc/powerpc/uio_machdep.c	standard
+arch/powerpc/powerpc/uma_machdep.c	standard
+arch/powerpc/powerpc/vm_machdep.c	standard
+arch/powerpc/ps3/ehci_ps3.c		optional	ps3 ehci
+arch/powerpc/ps3/ohci_ps3.c		optional	ps3 ohci
+arch/powerpc/ps3/if_glc.c		optional	ps3 glc
+arch/powerpc/ps3/mmu_ps3.c		optional	ps3
+arch/powerpc/ps3/platform_ps3.c	optional	ps3
+arch/powerpc/ps3/ps3bus.c		optional	ps3
+arch/powerpc/ps3/ps3cdrom.c		optional	ps3 scbus
+arch/powerpc/ps3/ps3disk.c		optional	ps3
+arch/powerpc/ps3/ps3pic.c		optional	ps3
+arch/powerpc/ps3/ps3_syscons.c	optional	ps3 vt
+arch/powerpc/ps3/ps3-hvcall.S	optional	ps3
+arch/powerpc/pseries/phyp-hvcall.S	optional	pseries powerpc64 | pseries powerpc64le
+arch/powerpc/pseries/mmu_phyp.c	optional	pseries powerpc64 | pseries powerpc64le
+arch/powerpc/pseries/phyp_console.c	optional	pseries powerpc64 uart | pseries powerpc64le uart
+arch/powerpc/pseries/phyp_dbg.c	optional	pseries powerpc64 gdb | pseries powerpc64le gdb
+arch/powerpc/pseries/phyp_llan.c	optional	llan
+arch/powerpc/pseries/phyp_vscsi.c	optional	pseries powerpc64 scbus | pseries powerpc64le scbus
+arch/powerpc/pseries/platform_chrp.c	optional	pseries
+arch/powerpc/pseries/plpar_iommu.c	optional	pseries powerpc64 | pseries powerpc64le
+arch/powerpc/pseries/plpar_pcibus.c	optional	pseries powerpc64 pci | pseries powerpc64le pci
+arch/powerpc/pseries/rtas_dev.c	optional	pseries
+arch/powerpc/pseries/rtas_pci.c	optional	pseries pci
+arch/powerpc/pseries/vdevice.c	optional	pseries powerpc64 | pseries powerpc64le
+arch/powerpc/pseries/xics.c		optional	pseries powerpc64 | pseries powerpc64le
+arch/powerpc/psim/iobus.c 		optional	psim
+arch/powerpc/psim/ata_iobus.c	optional	ata psim
+arch/powerpc/psim/openpic_iobus.c	optional	psim
+arch/powerpc/psim/uart_iobus.c	optional	uart psim

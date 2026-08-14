@@ -1,6 +1,6 @@
 # arm headers installed on arm64
 
-.PATH: ${SRCTOP}/sys/arm/include ${SRCTOP}/lib/msun/arm
+.PATH: ${SRCTOP}/sys/arch/arm/include ${SRCTOP}/lib/msun/arm
 
 INCS=	_align.h \
 	_inttypes.h \

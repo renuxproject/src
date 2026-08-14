@@ -21,7 +21,7 @@ LIBADD+=	md
 beforedepend zfsboottest.o: machine
 CLEANFILES+=	machine
 machine:
-	ln -sf ${SRCTOP}/sys/i386/include machine
+	ln -sf ${SRCTOP}/sys/arch/i386/include machine
 .endif
 
 .include <bsd.prog.mk>

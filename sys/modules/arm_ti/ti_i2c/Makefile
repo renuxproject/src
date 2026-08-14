@@ -1,4 +1,4 @@
-.PATH: ${SRCTOP}/sys/arm/ti
+.PATH: ${SRCTOP}/sys/arch/arm/ti
 
 KMOD=	ti_i2c
 SRCS=	ti_i2c.c

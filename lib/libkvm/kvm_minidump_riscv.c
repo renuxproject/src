@@ -39,7 +39,7 @@
 #include <vm/vm.h>
 #include <kvm.h>
 
-#include "../../sys/riscv/include/minidump.h"
+#include "../../sys/arch/riscv/include/minidump.h"
 
 #include <limits.h>
 

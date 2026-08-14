@@ -1,4 +1,4 @@
-.PATH: ${SRCTOP}/sys/powerpc/powernv
+.PATH: ${SRCTOP}/sys/arch/powerpc/powernv
 
 KMOD=	opal_nvram
 SRCS=	opal_nvram.c

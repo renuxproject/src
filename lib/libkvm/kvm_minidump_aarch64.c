@@ -38,7 +38,7 @@
 #include <vm/vm.h>
 #include <kvm.h>
 
-#include "../../sys/arm64/include/minidump.h"
+#include "../../sys/arch/arm64/include/minidump.h"
 
 #include <limits.h>
 

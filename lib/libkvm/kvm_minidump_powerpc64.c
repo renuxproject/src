@@ -35,7 +35,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "../../sys/powerpc/include/minidump.h"
+#include "../../sys/arch/powerpc/include/minidump.h"
 #include "kvm_private.h"
 #include "kvm_powerpc64.h"
 

@@ -1,4 +1,4 @@
-.PATH: ${SRCTOP}/sys/arm/freescale/imx
+.PATH: ${SRCTOP}/sys/arch/arm/freescale/imx
 
 KMOD=	imx6_snvs
 SRCS=	imx6_snvs.c

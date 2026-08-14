@@ -1,6 +1,6 @@
 # i386 headers installed on amd64
 
-.PATH: ${SRCTOP}/sys/i386/include
+.PATH: ${SRCTOP}/sys/arch/i386/include
 INCS=	\
 	asm.h \
 	asmacros.h \

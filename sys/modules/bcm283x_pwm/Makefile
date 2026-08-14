@@ -1,4 +1,4 @@
-.PATH: ${SRCTOP}/sys/arm/broadcom/bcm2835/
+.PATH: ${SRCTOP}/sys/arch/arm/broadcom/bcm2835/
 
 KMOD=	bcm283x_pwm
 SRCS=	bcm2835_pwm.c
