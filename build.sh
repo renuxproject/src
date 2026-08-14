@@ -1429,26 +1429,20 @@ make_world_bios_iso()
 # Set up a working root login on the live ISO (password: "renux"), the usual
 # live-CD convention.  Removes the passwd databases so libc falls back to the
 # flat files, and marks the console ttys secure so root can log in anywhere.
-setup_world_root_login()
+	setup_world_root_login()
 {
 	local etc
 	etc="${WORLDDIR}/etc"
 	mkdir -p "${etc}" "${WORLDDIR}/root"
-	# Root account with an empty password (live/installer CD convention).
-	# master.passwd(5) format: name:password:uid:gid:class:change:expire:gecos:home:shell
-	cat > "${etc}/master.passwd" <<'EOF'
-root::0:0::0:0:Charlie &:/root:/bin/sh
-EOF
+	# Use the standard FreeBSD user/group templates so that libc lookups and
+	# the boot-time mtree population of /var (/etc/mtree/BSD.var.dist) can
+	# resolve every user/group.  The template's root already has an empty
+	# password (live/installer CD convention).
+	cp "${SRCDIR}/etc/master.passwd" "${etc}/master.passwd"
+	cp "${SRCDIR}/etc/group" "${etc}/group"
+	# World-readable passwd(5) (not used by libc, which reads pwd.db).
 	cat > "${etc}/passwd" <<'EOF'
 root::0:0:Charlie &:/root:/bin/sh
-EOF
-	cat > "${etc}/group" <<'EOF'
-wheel:*:0:root
-daemon:*:1:
-kmem:*:2:
-sys:*:3:
-tty:*:4:
-operator:*:5:
 EOF
 	rm -f "${etc}/passwd.db" "${etc}/pwd.db" "${etc}/spwd.db" \
 	    "${etc}/master.passwd.db"
