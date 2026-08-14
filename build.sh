@@ -1486,6 +1486,31 @@ EOF
 	statusmsg "Configured root login (no password) in ${etc}"
 }
 
+# Generate /etc/pwd.db + /etc/spwd.db for the live world root.  The Renux libc
+# has no flat-file fallback (lib/libc/gen/getpwent.c), so without these
+# databases getpwnam(3) fails and root login (and "install -o root") breaks.
+# pwd_mkdb is built as a host bootstrap tool by buildworld, so we can run it
+# here against the staged master.passwd.
+generate_passwd_db()
+{
+	local pwdmkdb srcdir_abs mobj_abs
+	if [ "${runcmd}" = echo ]; then
+		echo "pwd_mkdb -d ${WORLDDIR}/etc ${WORLDDIR}/etc/master.passwd"
+		return 0
+	fi
+	[ -f "${WORLDDIR}/etc/master.passwd" ] || return 0
+	srcdir_abs="$(cd "${SRCDIR}" && pwd)"
+	mobj_abs="$(cd "${MAKEOBJDIRPREFIX}" && pwd)"
+	pwdmkdb="${mobj_abs}${srcdir_abs}/tmp/legacy/usr/sbin/pwd_mkdb"
+	if [ ! -x "${pwdmkdb}" ]; then
+		statusmsg "warning: host pwd_mkdb not found at ${pwdmkdb}; skipping passwd db generation"
+		return 0
+	fi
+	"${pwdmkdb}" -d "${WORLDDIR}/etc" "${WORLDDIR}/etc/master.passwd" ||
+	    statusmsg "warning: pwd_mkdb failed; root login may not work"
+	statusmsg "Generated ${WORLDDIR}/etc/pwd.db and spwd.db"
+}
+
 # Fix ownership/permissions of the installed world root.  On a cross-build the
 # install wrapper cannot set -o/-g, so files end up owned by the build user;
 # FreeBSD's login/pam/mtree refuse that.  Restore root ownership here (the CI
@@ -1498,6 +1523,12 @@ fix_world_root_perms()
 	fi
 	mkdir -p "${WORLDDIR}/tmp" "${WORLDDIR}/var/run/devd" "${WORLDDIR}/var/tmp" \
 	    "${WORLDDIR}/var/log" "${WORLDDIR}/var/db" 2>/dev/null || :
+	# Keep the tmpfs mountpoints non-empty so they survive in the ISO image
+	# (empty dirs may be dropped by the ISO writer), giving mount(8) a
+	# mountpoint to attach tmpfs to.
+	touch "${WORLDDIR}/tmp/.keep" "${WORLDDIR}/var/run/.keep" \
+	    "${WORLDDIR}/var/run/devd/.keep" "${WORLDDIR}/var/tmp/.keep" \
+	    "${WORLDDIR}/var/log/.keep" "${WORLDDIR}/var/db/.keep" 2>/dev/null || :
 	if command -v chown >/dev/null 2>&1; then
 		if chown -R 0:0 "${WORLDDIR}" 2>/dev/null; then
 			:
@@ -1756,6 +1787,7 @@ main()
 		build_bios_loader
 		if [ "${world_image}" = true ]; then
 			setup_world_root_login
+			generate_passwd_db
 			stage_world_root
 			fix_world_root_perms
 			make_world_esp
