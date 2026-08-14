@@ -1516,6 +1516,24 @@ Source code:  https://github.com/renuxproject/src
 Website:      https://renuxproject.github.io
 EOF
 	cat "${etc}/motd" > "${etc}/motd.template" 2>/dev/null || :
+	# login(1) shows the file named by the "welcome" capability in
+	# /etc/login.conf.  Point it at /etc/motd (the default points to
+	# /var/run/motd, which is never generated with update_motd=NO).
+	if [ -f "${etc}/login.conf" ]; then
+		sed 's#:welcome=/var/run/motd:#:welcome=/etc/motd:#' \
+		    "${etc}/login.conf" > "${etc}/login.conf.new" && \
+		    mv -f "${etc}/login.conf.new" "${etc}/login.conf"
+	fi
+	# The interactive-shell rc file ($ENV) runs after /etc/profile and would
+	# otherwise reset PS1 to the plain FreeBSD prompt; make the colored
+	# Gentoo-style prompt win there too.
+	if [ -f "${WORLDDIR}/root/.shrc" ]; then
+		cat >> "${WORLDDIR}/root/.shrc" <<'EOF'
+
+# Gentoo-style colored prompt (Renux)
+PS1='\[\033[01;31m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] '
+EOF
+	fi
 	statusmsg "Configured root login (no password) in ${etc}"
 }
 
