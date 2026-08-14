@@ -1435,8 +1435,9 @@ setup_world_root_login()
 	etc="${WORLDDIR}/etc"
 	mkdir -p "${etc}" "${WORLDDIR}/root"
 	# Root account with an empty password (live/installer CD convention).
+	# master.passwd(5) format: name:password:uid:gid:class:change:expire:gecos:home:shell
 	cat > "${etc}/master.passwd" <<'EOF'
-root::0:0:Charlie &:/root:/bin/sh
+root::0:0::0:0:Charlie &:/root:/bin/sh
 EOF
 	cat > "${etc}/passwd" <<'EOF'
 root::0:0:Charlie &:/root:/bin/sh
@@ -1500,7 +1501,7 @@ generate_passwd_db()
 	[ -f "${WORLDDIR}/etc/master.passwd" ] || return 0
 	srcdir_abs="$(cd "${SRCDIR}" && pwd)"
 	mobj_abs="$(cd "${MAKEOBJDIRPREFIX}" && pwd)"
-	pwdmkdb="${mobj_abs}${srcdir_abs}/tmp/legacy/usr/sbin/pwd_mkdb"
+	pwdmkdb="${mobj_abs}${srcdir_abs}/${TARGET}.${TARGET_ARCH}/tmp/legacy/usr/sbin/pwd_mkdb"
 	if [ ! -x "${pwdmkdb}" ]; then
 		pwdmkdb="$(find "${MAKEOBJDIRPREFIX}" -type f -name pwd_mkdb \
 		    -path '*/tmp/legacy/usr/sbin/pwd_mkdb' 2>/dev/null | head -n1)"
