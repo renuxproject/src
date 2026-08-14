@@ -1,0 +1,47 @@
+name: Mirror to git.disroot.org
+
+# Keeps the self-hosted Forgejo copy in sync with the GitHub development
+# repository, so no single forge is a single point of failure (see
+# DECENTRALIZATION.md).
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*', 'snapshot-*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    name: Mirror main + tags to git.disroot.org/renuxproject/src
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Mirror to git.disroot.org
+        env:
+          DISROOT_DEPLOY_KEY: ${{ secrets.DISROOT_DEPLOY_KEY }}
+        run: |
+          set -e
+          umask 077
+          if [ -z "$DISROOT_DEPLOY_KEY" ]; then
+            echo "::error::DISROOT_DEPLOY_KEY secret is not set."
+            echo "Add a deploy key (private part, write access) for"
+            echo "git.disroot.org/renuxproject/src as a GitHub Actions secret."
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DISROOT_DEPLOY_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Pin the host key instead of using TOFU.
+          printf '%s\n' \
+            'git.disroot.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBl6QhMLV//e4QkBnkk8eyFbL1B0CTrJ1HiTaqncGSv1' \
+            > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          git remote add disroot git@git.disroot.org:renuxproject/src.git
+          git push --force --prune disroot refs/heads/main:refs/heads/main
+          git push --force --prune disroot 'refs/tags/*:refs/tags/*'
