@@ -1479,31 +1479,6 @@ EOF
 EOF
 	chmod 755 "${etc}/rc.local" 2>/dev/null || :
 	chmod 755 "${etc}/rc.local" 2>/dev/null || :
-	# Gentoo-style colored prompt for every login shell (the BSD sh reads
-	# /etc/profile).  user@host in green (red for root), cwd in blue.
-	if [ -f "${etc}/profile" ]; then
-		cat >> "${etc}/profile" <<'EOF'
-
-# Gentoo-style colored prompt (Renux)
-if [ "$(id -u)" = 0 ]; then
-	PS1='\[\033[01;31m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] '
-else
-	PS1='\[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] '
-fi
-export PS1
-EOF
-	else
-		cat > "${etc}/profile" <<'EOF'
-# Gentoo-style colored prompt (Renux)
-if [ "$(id -u)" = 0 ]; then
-	PS1='\[\033[01;31m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] '
-else
-	PS1='\[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] '
-fi
-export PS1
-EOF
-	fi
-	chmod 644 "${etc}/profile" 2>/dev/null || :
 	# Renux welcome banner shown at login (replaces the FreeBSD motd), pointing
 	# to the source code and the website.
 	cat > "${etc}/motd" <<'EOF'
