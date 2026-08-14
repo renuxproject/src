@@ -140,14 +140,27 @@ f_confirm "Warning" \
 }
 
 ############################################################ Partition
+# GPT with freebsd-boot (BIOS stage), ESP (UEFI) and UFS root, so the
+# installed system boots on both BIOS and UEFI.
 
-echo "Partitioning $TARGET (GPT: ESP + UFS root)..."
+echo "Partitioning $TARGET (GPT: freebsd-boot + ESP + UFS root)..."
 gpart destroy -F "$TARGET" 2>/dev/null
 gpart create -s gpt "$TARGET" || { echo "error: gpart create failed"; exit 1; }
+gpart add -t freebsd-boot -b 40 -s 128k -l boot0 "$TARGET" ||
+    { echo "error: could not add BIOS boot partition"; exit 1; }
 gpart add -t efi -a 4k -s "$ESP_SIZE" -l efiboot "$TARGET" ||
     { echo "error: could not add ESP partition"; exit 1; }
 gpart add -t freebsd-ufs -a 4k -l rootfs "$TARGET" ||
     { echo "error: could not add root partition"; exit 1; }
+
+# BIOS boot code: PMBR + gptboot in the freebsd-boot partition.
+if [ -f /boot/pmbr ] && [ -f /boot/gptboot ]; then
+	echo "Installing BIOS boot code (pmbr + gptboot)..."
+	gpart bootcode -b /boot/pmbr -p /boot/gptboot -i 1 "$TARGET" ||
+	    echo "warning: could not write BIOS boot code"
+else
+	echo "warning: /boot/pmbr or /boot/gptboot missing; BIOS boot may not work"
+fi
 
 ESP="/dev/gpt/efiboot"
 ROOT="/dev/gpt/rootfs"
@@ -187,19 +200,26 @@ mkdir -p "${BSDINSTALL_CHROOT}/tmp" "${BSDINSTALL_CHROOT}/var/run" \
 
 ############################################################ Boot loader
 
-echo "Installing the boot loader..."
+# UEFI: the EFI loader lives at /EFI/BOOT/BOOTX64.EFI in the world (the
+# /boot/loader on the live media is the BIOS loader).  Copy it to the ESP.
+echo "Installing the boot loader (BIOS + UEFI)..."
 mkdir -p "${BSDINSTALL_CHROOT}/boot/efi/EFI/BOOT"
-if [ -f /boot/loader ]; then
-	cp /boot/loader "${BSDINSTALL_CHROOT}/boot/efi/EFI/BOOT/BOOTX64.EFI" ||
-	    { echo "error: could not copy loader"; }
+if [ -f "${BSDINSTALL_CHROOT}/EFI/BOOT/BOOTX64.EFI" ]; then
+	cp "${BSDINSTALL_CHROOT}/EFI/BOOT/BOOTX64.EFI" \
+	    "${BSDINSTALL_CHROOT}/boot/efi/EFI/BOOT/BOOTX64.EFI" ||
+	    echo "warning: could not copy the EFI loader"
+elif [ -f /boot/loader.efi ]; then
+	cp /boot/loader.efi "${BSDINSTALL_CHROOT}/boot/efi/EFI/BOOT/BOOTX64.EFI" ||
+	    echo "warning: could not copy the EFI loader"
 else
-	echo "warning: /boot/loader not found on the live media"
+	echo "warning: EFI loader not found; UEFI boot may not work"
 fi
 
+# The loader auto-detects its console, so the same loader.conf works for
+# both BIOS and UEFI boots.
 cat > "${BSDINSTALL_CHROOT}/boot/loader.conf" <<'EOF'
 autoboot_delay="2"
 loader_logo="renux"
-console="efi"
 EOF
 
 ############################################################ /etc/fstab

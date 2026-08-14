@@ -15,9 +15,9 @@ The
 utility installs Renux onto a disk by cloning the running live system.
 It detects the available disks, lets the user select a target (like
 .Xr bsdinstall 8 ) ,
-partitions it (GPT with an EFI System Partition and a UFS root), formats
-the partitions, copies the live world to the disk, installs the boot loader
-and writes a proper
+partitions it (GPT with a freebsd-boot stage, an EFI System Partition and a
+UFS root), formats the partitions, copies the live world to the disk,
+installs the boot code and loader (BIOS and UEFI) and writes a proper
 .Pa /etc/fstab
 and
 .Pa /boot/loader.conf .
