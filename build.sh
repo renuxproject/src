@@ -1469,6 +1469,8 @@ EOF
 	cat > "${etc}/rc.conf" <<'EOF'
 hostname="renux"
 hostid_enable="NO"
+# /etc is a read-only CD, so keep the staged motd and skip regeneration.
+update_motd="NO"
 EOF
 	# Best-effort passwd database regeneration (the flat /etc/passwd already
 	# contains root, so this only helps when /etc is writable).
@@ -1502,6 +1504,18 @@ export PS1
 EOF
 	fi
 	chmod 644 "${etc}/profile" 2>/dev/null || :
+	# Renux welcome banner shown at login (replaces the FreeBSD motd), pointing
+	# to the source code and the website.
+	cat > "${etc}/motd" <<'EOF'
+Welcome to Renux!
+
+Renux is a modern BSD operating system - easy to maintain and debug, built
+for portability and performance, and community-driven and decentralized.
+
+Source code:  https://github.com/renuxproject/src
+Website:      https://renuxproject.github.io
+EOF
+	cat "${etc}/motd" > "${etc}/motd.template" 2>/dev/null || :
 	statusmsg "Configured root login (no password) in ${etc}"
 }
 
