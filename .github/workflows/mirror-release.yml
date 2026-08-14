@@ -1,0 +1,74 @@
+name: Mirror Releases to git.disroot.org
+
+# Mirrors GitHub Releases (including the attached ISO binaries) to the
+# self-hosted Forgejo so the release artifacts are not a single point of
+# failure either (see DECENTRALIZATION.md).
+
+on:
+  release:
+    types: [ published ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to mirror (e.g. snapshot-20260814-1200)'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  mirror-release:
+    name: Mirror release and assets to git.disroot.org/renuxproject/src
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+
+      - name: Mirror release + assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISROOT_API_TOKEN: ${{ secrets.DISROOT_API_TOKEN }}
+          TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DISROOT_API_TOKEN" ]; then
+            echo "::error::DISROOT_API_TOKEN secret is not set."
+            echo "Create a Forgejo token on git.disroot.org (Settings ->"
+            echo "Applications -> Generate new token, scope write:repository)"
+            echo "and add it as a GitHub Actions secret."
+            exit 1
+          fi
+          API="https://git.disroot.org/api/v1/repos/renuxproject/src/releases"
+          AUTH="Authorization: token ${DISROOT_API_TOKEN}"
+
+          BODY="$(gh release view "$TAG" --json body -q '.body')"
+          TITLE="$(gh release view "$TAG" --json name -q '.name')"
+
+          # Reuse the mirror release if it already exists, else create it.
+          RELID="$(curl -fsS -H "$AUTH" "$API/tags/$TAG" 2>/dev/null | jq -r .id || true)"
+          if [ -z "$RELID" ] || [ "$RELID" = "null" ]; then
+            RELID="$(curl -fsS -X POST -H "$AUTH" \
+                -H 'Content-Type: application/json' \
+                -d "$(jq -n --arg tag "$TAG" --arg name "$TITLE" --arg body "$BODY" \
+                    '{tag_name:$tag,name:$name,body:$body}')" \
+                "$API" | jq -r .id)"
+          fi
+          [ -n "$RELID" ] && [ "$RELID" != "null" ] || {
+            echo "error: could not create the mirror release"; exit 1
+          }
+
+          # Download the GitHub release assets and upload them to the mirror.
+          cd "$(mktemp -d)"
+          gh release download "$TAG" --clobber
+          for f in *; do
+            [ -f "$f" ] || continue
+            name="$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))' "$f")"
+            echo "uploading $f"
+            curl -fsS -X POST -H "$AUTH" \
+                -H 'Content-Type: application/octet-stream' \
+                --data-binary "@$f" \
+                "$API/$RELID/assets?name=$name" >/dev/null
+          done
+          echo "Mirrored release $TAG to git.disroot.org/renuxproject/src"
