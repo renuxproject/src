@@ -73,10 +73,24 @@ jobs:
           for f in *; do
             [ -f "$f" ] || continue
             name="$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))' "$f")"
-            echo "uploading $f"
-            curl -fsS -X POST -H "$AUTH" \
+            size="$(du -h "$f" | cut -f1)"
+            echo "uploading $f ($size)"
+            code="$(curl -sS -X POST -H "$AUTH" \
                 -H 'Content-Type: application/octet-stream' \
-                --upload-file "$f" \
-                "$API/$RELID/assets?name=$name" >/dev/null
+                --upload-file "$f" -o /dev/null -w '%{http_code}' \
+                "$API/$RELID/assets?name=$name")"
+            case "$code" in
+            2*)
+                echo "uploaded $f"
+                ;;
+            413)
+                echo "::warning::Skipped $f ($size): the mirror server rejected the upload"
+                echo "::warning::(HTTP 413, likely the Forgejo MAX_CLIENT_BODY_SIZE limit)."
+                ;;
+            *)
+                echo "::error::upload of $f failed (HTTP $code)"
+                exit 1
+                ;;
+            esac
           done
           echo "Mirrored release $TAG to git.disroot.org/renuxproject/src"
