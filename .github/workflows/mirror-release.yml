@@ -66,6 +66,8 @@ jobs:
           }
 
           # Download the GitHub release assets and upload them to the mirror.
+          # --upload-file streams the file (--data-binary loads it into
+          # memory and OOMs on multi-GB ISOs).
           cd "$(mktemp -d)"
           gh release download "$TAG" --repo "$GH_REPO" --clobber
           for f in *; do
@@ -74,7 +76,7 @@ jobs:
             echo "uploading $f"
             curl -fsS -X POST -H "$AUTH" \
                 -H 'Content-Type: application/octet-stream' \
-                --data-binary "@$f" \
+                --upload-file "$f" \
                 "$API/$RELID/assets?name=$name" >/dev/null
           done
           echo "Mirrored release $TAG to git.disroot.org/renuxproject/src"
