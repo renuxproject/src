@@ -50,30 +50,33 @@ f_confirm()
 
 ############################################################ Disk detection
 
-# Returns the raw disk device names in /dev (kern.disks), excluding the
-# media we are booting from.
+# Returns the raw disk device names (ada0, vtbd0, nvme0ns1, ...), excluding
+# the media we are booting from.  Uses kern.disks when available and also
+# scans /dev as a fallback.
 f_list_disks()
 {
-	local n
+	local n seen
+	seen=""
 	if sysctl -n kern.disks >/dev/null 2>&1; then
 		for n in $(sysctl -n kern.disks 2>/dev/null); do
+			case " $seen " in *" $n "*) continue ;; esac
+			case "$n" in cd*|md*) continue ;; esac
 			[ -e "/dev/$n" ] || continue
-			case "$n" in
-			cd*) continue ;;
-			md*) continue ;;
-			esac
 			case "$LIVE_ROOT" in
 			/dev/iso9660/*|/dev/cd*) ;;
 			*"$n"*) continue ;;
 			esac
-			echo "$n"
-		done
-	else
-		for n in $(ls /dev/ada[0-9]* /dev/da[0-9]* /dev/vtbd[0-9]* \
-		    /dev/nvd[0-9]* /dev/nvme[0-9]*ns[0-9]* 2>/dev/null); do
-			echo "${n#/dev/}"
+			seen="$seen $n"
 		done
 	fi
+	for n in /dev/ada[0-9]* /dev/da[0-9]* /dev/vtbd[0-9]* \
+	    /dev/nvd[0-9]* /dev/nvme[0-9]*ns[0-9]*; do
+		n="${n#/dev/}"
+		[ -e "/dev/$n" ] || continue
+		case " $seen " in *" $n "*) continue ;; esac
+		seen="$seen $n"
+	done
+	echo "$seen" | tr ' ' '\n' | sed '/^$/d'
 }
 
 f_disk_size()
@@ -88,7 +91,8 @@ TARGET="${1:-}"
 if [ -z "$TARGET" ]; then
 	DISKS="$(f_list_disks)"
 	if [ -z "$DISKS" ]; then
-		f_msg "No disks" "No disks found to install Renux to."
+		f_msg "No disks" \
+		    "No disks found to install Renux to.\n\nRun 'sysctl kern.disks' or 'geom disk list' to list devices."
 		exit 1
 	fi
 
@@ -102,7 +106,8 @@ if [ -z "$TARGET" ]; then
 		    --title 'Target Disk' \
 		    --menu 'Select the disk to install Renux to. ALL DATA ON IT WILL BE ERASED:' \
 		    0 0 0 $menu_args 2>&1 >/dev/tty)"
-	else
+	fi
+	if [ -z "$TARGET" ]; then
 		echo "Available disks:"
 		i=1
 		for n in $DISKS; do
@@ -117,7 +122,14 @@ if [ -z "$TARGET" ]; then
 fi
 
 [ -n "$TARGET" ] && [ -e "$TARGET" ] || {
-	f_msg "Invalid disk" "Disk $TARGET does not exist."
+	echo "error: disk '$TARGET' does not exist."
+	echo "Detected disks on this system:"
+	for n in $(f_list_disks); do
+		echo "    /dev/$n  ($(f_disk_size "$n"))"
+	done
+	echo "Tip: run 'sysctl kern.disks' or 'geom disk list' to list devices."
+	f_msg "Invalid disk" \
+	    "Disk '$TARGET' does not exist.\n\nDetected disks:\n$(for n in $(f_list_disks); do echo "  /dev/$n"; done)"
 	exit 1
 }
 
