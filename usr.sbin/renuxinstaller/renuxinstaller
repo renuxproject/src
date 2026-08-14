@@ -5,14 +5,15 @@
 #
 # renuxinstaller - install Renux to a disk by cloning the running live system.
 #
-# Partitions the target disk (GPT + EFI System Partition + UFS root), formats
+# Detects the available disks, lets you pick one (like the FreeBSD
+# bsdinstall), partitions it (GPT + EFI System Partition + UFS root), formats
 # it, copies the live world to it, installs the boot loader and writes a
 # proper /etc/fstab and /boot/loader.conf.  No distribution sets are needed.
 #
-# Usage: bsdinstall renuxinstaller [/dev/disk]
+# Usage: renuxinstaller [/dev/disk]
 
 BSDCFG_SHARE="/usr/share/bsdconfig"
-. $BSDCFG_SHARE/common.subr || exit 1
+[ -f "$BSDCFG_SHARE/common.subr" ] && . "$BSDCFG_SHARE/common.subr"
 
 : ${BSDINSTALL_CHROOT:="/mnt"}
 : ${TMPDIR:="/tmp"}
@@ -47,43 +48,78 @@ f_confirm()
 	fi
 }
 
-f_prompt()
+############################################################ Disk detection
+
+# Returns the raw disk device names in /dev (kern.disks), excluding the
+# media we are booting from.
+f_list_disks()
 {
-	local val
-	if command -v bsddialog >/dev/null 2>&1; then
-		val=$(bsddialog --backtitle "Renux Installer" --title "$1" \
-		    --inputbox "$2" 0 0 "$3" 2>&1 >/dev/tty)
+	local n
+	if sysctl -n kern.disks >/dev/null 2>&1; then
+		for n in $(sysctl -n kern.disks 2>/dev/null); do
+			[ -e "/dev/$n" ] || continue
+			case "$n" in
+			cd*) continue ;;
+			md*) continue ;;
+			esac
+			case "$LIVE_ROOT" in
+			/dev/iso9660/*|/dev/cd*) ;;
+			*"$n"*) continue ;;
+			esac
+			echo "$n"
+		done
 	else
-		echo "*** $1"
-		printf '%s [%s]: ' "$2" "$3"
-		read val
-		[ -z "$val" ] && val="$3"
+		for n in $(ls /dev/ada[0-9]* /dev/da[0-9]* /dev/vtbd[0-9]* \
+		    /dev/nvd[0-9]* /dev/nvme[0-9]*ns[0-9]* 2>/dev/null); do
+			echo "${n#/dev/}"
+		done
 	fi
-	echo "$val"
+}
+
+f_disk_size()
+{
+	diskinfo -v "/dev/$1" 2>/dev/null |
+	    awk '$3 == "mediasize" { printf "%.1f GB", $1 / 1073741824 }'
 }
 
 ############################################################ Target disk
 
 TARGET="${1:-}"
-while [ -z "$TARGET" ]; do
-	echo ""
-	echo "Disks available on this system:"
-	for d in /dev/ada[0-9]* /dev/da[0-9]* /dev/vtbd[0-9]* \
-	    /dev/nvd[0-9]* /dev/nvme[0-9]*ns[0-9]*; do
-		[ -e "$d" ] && echo "    $d"
-	done
-	TARGET=$(f_prompt "Target Disk" "Install Renux to which disk?" \
-	    "/dev/ada0")
-done
-[ -e "$TARGET" ] || { echo "error: $TARGET does not exist"; exit 1; }
+if [ -z "$TARGET" ]; then
+	DISKS="$(f_list_disks)"
+	if [ -z "$DISKS" ]; then
+		f_msg "No disks" "No disks found to install Renux to."
+		exit 1
+	fi
 
-# Refuse to install over the media we are booting from.
-case "$LIVE_ROOT" in
-"$TARGET"*)
-	echo "error: $TARGET is the live media ($LIVE_ROOT); refusing to overwrite"
+	if command -v bsddialog >/dev/null 2>&1; then
+		# Build the menu list: "/dev/ada0" "16.0 GB" ...
+		menu_args=""
+		for n in $DISKS; do
+			menu_args="$menu_args /dev/$n \"$(f_disk_size "$n")\""
+		done
+		TARGET="$(eval bsddialog --backtitle 'Renux Installer' \
+		    --title 'Target Disk' \
+		    --menu 'Select the disk to install Renux to. ALL DATA ON IT WILL BE ERASED:' \
+		    0 0 0 $menu_args 2>&1 >/dev/tty)"
+	else
+		echo "Available disks:"
+		i=1
+		for n in $DISKS; do
+			echo "    $i) /dev/$n  ($(f_disk_size "$n"))"
+			i=$((i + 1))
+		done
+		printf 'Select a disk number [1-%s]: ' "$((i - 1))"
+		read sel
+		n="$(echo "$DISKS" | awk -v s="$sel" 'NR == s { print }')"
+		[ -n "$n" ] && TARGET="/dev/$n"
+	fi
+fi
+
+[ -n "$TARGET" ] && [ -e "$TARGET" ] || {
+	f_msg "Invalid disk" "Disk $TARGET does not exist."
 	exit 1
-	;;
-esac
+}
 
 f_confirm "Warning" \
 	"This will DESTROY ALL DATA on $TARGET and install Renux on it.\n\n$TARGET" || {

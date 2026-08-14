@@ -1,0 +1,62 @@
+.\" SPDX-License-Identifier: BSD-2-Clause
+.\" Copyright (c) 2026 The Renux Project.
+.Dd August 14, 2026
+.Dt RENUXINSTALLER 8
+.Os
+.Sh NAME
+.Nm renuxinstaller
+.Nd install Renux to a disk by cloning the running live system
+.Sh SYNOPSIS
+.Nm
+.Op disk
+.Sh DESCRIPTION
+The
+.Nm
+utility installs Renux onto a disk by cloning the running live system.
+It detects the available disks, lets the user select a target (like
+.Xr bsdinstall 8 ) ,
+partitions it (GPT with an EFI System Partition and a UFS root), formats
+the partitions, copies the live world to the disk, installs the boot loader
+and writes a proper
+.Pa /etc/fstab
+and
+.Pa /boot/loader.conf .
+.Pp
+No distribution sets are required: the installer copies the running live
+environment.
+.Pp
+If a
+.Ar disk
+argument is given, that disk is used without prompting.  Otherwise a list
+of detected disks is presented for selection.
+.Pp
+.Bl -bullet -compact
+.It
+All data on the target disk is destroyed.
+.It
+The disk used to boot the live media is refused.
+.El
+.Sh ENVIRONMENT
+.Bl -tag -width "BSDINSTALL_CHROOT"
+.It Va BSDINSTALL_CHROOT
+Mount point used for the target root.  Defaults to
+.Pa /mnt .
+.It Va ESP_SIZE
+Size of the EFI System Partition.  Defaults to
+.Ql 128m .
+.El
+.Sh FILES
+.Bl -tag -width "/boot/loader"
+.It Pa /boot/loader
+EFI boot loader copied to the target ESP.
+.It Pa /etc/motd
+Welcome banner shipped to the target.
+.El
+.Sh SEE ALSO
+.Xr bsdinstall 8 ,
+.Xr gpart 8 ,
+.Xr newfs 8
+.Sh HISTORY
+The
+.Nm
+command first appeared in Renux 0.1.

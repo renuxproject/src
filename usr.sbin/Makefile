@@ -68,6 +68,7 @@ SUBDIR=	adduser \
 	pwm \
 	quot \
 	rarpd \
+	renuxinstaller \
 	rmt \
 	rpcbind \
 	rpc.lockd \
