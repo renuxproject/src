@@ -1616,6 +1616,15 @@ fix_world_root_perms()
 	else
 		statusmsg "warning: chown not available on ${host_os}"
 	fi
+	# chown(1) clears the setuid/setgid bits; restore them on the base
+	# setuid-root programs (su, passwd, login, ...) so su(1) works.
+	for f in \
+	    usr/bin/su usr/bin/passwd usr/bin/chpass usr/bin/lock \
+	    usr/bin/login usr/bin/newgrp usr/bin/quota usr/bin/crontab \
+	    usr/bin/at usr/bin/atq usr/bin/atrm usr/bin/batch usr/sbin/ppp
+	do
+		[ -f "${WORLDDIR}/$f" ] && chmod u+s "${WORLDDIR}/$f" 2>/dev/null || :
+	done
 	touch "${WORLDDIR}/etc/fstab" 2>/dev/null || :
 }
 

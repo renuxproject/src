@@ -190,7 +190,8 @@ echo "Cloning the live system to ${BSDINSTALL_CHROOT} (this may take a while)...
 	    --exclude=./proc --exclude=./sys --exclude=./tmp --exclude=./mnt \
 	    --exclude=./boot/efi --exclude=./var/run --exclude=./var/log \
 	    --exclude=./var/tmp --exclude=./var/db .
-) | ( cd "${BSDINSTALL_CHROOT}" && tar -xf - ) ||
+) | dd bs=1m status=progress |
+    ( cd "${BSDINSTALL_CHROOT}" && tar -xf - ) ||
     { echo "error: failed to clone the live system"; umount -a; exit 1; }
 
 # Make sure the runtime and special directories exist on the target (the
@@ -242,6 +243,20 @@ if f_confirm "Root password" \
     "Set a password for root now? (NO keeps the empty live password)"; then
 	chroot "${BSDINSTALL_CHROOT}" passwd root 2>/dev/null ||
 	    echo "warning: could not set the root password"
+fi
+
+if f_confirm "Create a user" \
+    "Create a regular user account (in the wheel group) for daily use?"; then
+	printf 'Username: '
+	read uname
+	if [ -n "$uname" ]; then
+		if chroot "${BSDINSTALL_CHROOT}" pw useradd "$uname" \
+		    -m -g wheel -h 0 2>/dev/null; then
+			echo "User $uname created (with password)."
+		else
+			echo "warning: could not create user $uname"
+		fi
+	fi
 fi
 
 ############################################################ Finish
