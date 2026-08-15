@@ -11,6 +11,7 @@ INCS=	sysdecode.h
 
 CFLAGS+= -I${.OBJDIR}
 CFLAGS+= -I${SRCTOP}/sys
+CFLAGS+= -I${SRCTOP}/sys/arch
 CFLAGS+= -I${SRCTOP}/libexec/rtld-elf
 
 MAN=	sysdecode.3 \

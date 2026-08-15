@@ -20,6 +20,6 @@ CFLAGS+=-DWITH_CASPER
 SRCS+=		linux.c
 .endif
 
-CFLAGS.linux.c+= -I${SRCTOP}/sys
+CFLAGS.linux.c+= -I${SRCTOP}/sys -I${SRCTOP}/sys/arch
 
 .include <bsd.prog.mk>
