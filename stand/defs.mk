@@ -257,7 +257,7 @@ ${_ILINKS}: .NOMETA
 				path=${SYSDIR}/arch/${MACHINE:C/amd64/i386/}/include ; \
 			else \
 				path=${SYSDIR}/${MACHINE:C/amd64/i386/}/include ; \
-			fi ;; \
+			fi ; \
 		fi ;; \
 	*) \
 		if [ -d ${SYSDIR}/arch/${.TARGET:T}/include ] ; then \
