@@ -117,7 +117,21 @@ jobs:
           for f in out/renux-installer.iso; do
             [ -f "$f" ] && FILES="$FILES $f"
           done
+          {
+            printf '%s\n' "EXPERIMENTAL - NOT a stable release of Renux."
+            printf '%s\n' ""
+            printf '%s\n' "Renux is under constant development. This build is provided for testing:"
+            printf '%s\n' "it may have bugs, missing features and frequent changes. Do not use it on"
+            printf '%s\n' "production or important machines."
+            printf '%s\n' ""
+            printf '%s\n' "- Stable target: amd64 (x86-64). Other architectures under sys/arch/ are experimental."
+            printf '%s\n' "- The live image and installer (renuxinstaller) are still being hardened."
+            printf '%s\n' ""
+            printf '%s\n' "Renux is community-driven and decentralized; forks and independent efforts are welcome."
+            printf '%s\n' "See DECENTRALIZATION.md. Website: https://renuxproject.github.io"
+          } > release-notes.md
           gh release create "${{ steps.tag.outputs.value }}" $FILES \
             --repo "$GITHUB_REPOSITORY" \
             --title "Renux ${{ steps.tag.outputs.value }}" \
-            --generate-notes
+            --prerelease \
+            --notes-file release-notes.md
