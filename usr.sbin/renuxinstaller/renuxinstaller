@@ -216,11 +216,16 @@ else
 fi
 
 # The loader auto-detects its console, so the same loader.conf works for
-# both BIOS and UEFI boots.
-cat > "${BSDINSTALL_CHROOT}/boot/loader.conf" <<'EOF'
+# both BIOS and UEFI boots.  Set the root explicitly: the cloned
+# /boot/defaults/loader.conf points at the live CD
+# (vfs.root.mountfrom=cd9660:/dev/iso9660/RENUX), which must not survive.
+cat > "${BSDINSTALL_CHROOT}/boot/loader.conf" <<EOF
 autoboot_delay="2"
 loader_logo="renux"
+vfs.root.mountfrom="ufs:$ROOT"
 EOF
+cp "${BSDINSTALL_CHROOT}/boot/loader.conf" \
+    "${BSDINSTALL_CHROOT}/boot/defaults/loader.conf"
 
 ############################################################ /etc/fstab
 
