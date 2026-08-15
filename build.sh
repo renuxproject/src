@@ -1494,6 +1494,18 @@ EOF
 	chmod 644 "${etc}/motd.template" 2>/dev/null || :
 	rm -f "${etc}/motd"
 	ln -s /var/run/motd "${etc}/motd" 2>/dev/null || :
+	# /etc is read-only on the live CD, so point resolv.conf at the writable
+	# /var/run tmpfs (dhclient writes through the symlink -> DNS works).
+	rm -f "${etc}/resolv.conf"
+	ln -s /var/run/resolv.conf "${etc}/resolv.conf" 2>/dev/null || :
+	# Until Renux has its own package repository, use the FreeBSD one.  pkg
+	# resolves ${ABI} from uname (Renux:15:amd64), which does not exist on
+	# pkg.FreeBSD.org; pin the FreeBSD ABI instead.
+	if [ -f "${etc}/pkg/FreeBSD.conf" ]; then
+		sed 's#\${ABI}#FreeBSD:15:amd64#g' \
+		    "${etc}/pkg/FreeBSD.conf" > "${etc}/pkg/FreeBSD.conf.new" && \
+		    mv -f "${etc}/pkg/FreeBSD.conf.new" "${etc}/pkg/FreeBSD.conf"
+	fi
 	statusmsg "Configured root login (no password) in ${etc}"
 }
 
