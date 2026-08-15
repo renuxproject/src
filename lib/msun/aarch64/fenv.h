@@ -25,7 +25,7 @@
  */
 
 #ifdef __arm__
-#include <arm/fenv.h>
+#include <arch/arm/fenv.h>
 #else /* __arm__ */
 
 #ifndef	_FENV_H_

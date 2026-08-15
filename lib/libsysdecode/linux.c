@@ -34,9 +34,9 @@
 #include "support.h"
 
 #ifdef __aarch64__
-#include <arm64/linux/linux.h>
+#include <arch/arm64/linux/linux.h>
 #elif __i386__
-#include <i386/linux/linux.h>
+#include <arch/i386/linux/linux.h>
 #elif __amd64__
 #include <arch/amd64/linux/linux.h>
 #else

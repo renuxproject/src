@@ -105,7 +105,7 @@ COPTFLAGS+= ${_CPUCFLAGS}
 .endif
 NOSTDINC= -nostdinc
 
-INCLUDES= ${NOSTDINC} ${INCLMAGIC} -I. -I$S -I$S/contrib/ck/include
+INCLUDES= ${NOSTDINC} ${INCLMAGIC} -I. -I$S -I$S/arch -I$S/contrib/ck/include
 
 CFLAGS=	${COPTFLAGS} ${DEBUG}
 CFLAGS+= ${INCLUDES} -D_KERNEL -DHAVE_KERNEL_OPTION_HEADERS -include opt_global.h

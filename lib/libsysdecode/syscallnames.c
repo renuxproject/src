@@ -49,11 +49,11 @@ static
 #if defined(__aarch64__) || defined(__amd64__) || defined(__i386__)
 static
 #ifdef __aarch64__
-#include <arm64/linux/linux_syscalls.c>
+#include <arch/arm64/linux/linux_syscalls.c>
 #elif __amd64__
 #include <arch/amd64/linux/linux_syscalls.c>
 #else
-#include <i386/linux/linux_syscalls.c>
+#include <arch/i386/linux/linux_syscalls.c>
 #endif
 #endif
 

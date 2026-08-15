@@ -89,10 +89,10 @@
 #include <arch/amd64/linux/linux_syscalls.c>
 #include <arch/amd64/linux/linux_systrace_args.c>
 #elif defined(__i386__)
-#include <i386/linux/linux.h>
-#include <i386/linux/linux_proto.h>
-#include <i386/linux/linux_syscalls.c>
-#include <i386/linux/linux_systrace_args.c>
+#include <arch/i386/linux/linux.h>
+#include <arch/i386/linux/linux_proto.h>
+#include <arch/i386/linux/linux_syscalls.c>
+#include <arch/i386/linux/linux_systrace_args.c>
 #else
 #error Only i386 and amd64 are supported.
 #endif

@@ -41,9 +41,9 @@
 #include <arch/amd64/linux/linux.h>
 #include <arch/amd64/linux32/linux32_syscall.h>
 #elif __aarch64__
-#include <arm64/linux/linux.h>
+#include <arch/arm64/linux/linux.h>
 #elif __i386__
-#include <i386/linux/linux.h>
+#include <arch/i386/linux/linux.h>
 #endif
 
 #include <compat/linux/linux.h>

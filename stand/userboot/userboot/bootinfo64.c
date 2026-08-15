@@ -28,7 +28,7 @@
 #include <sys/param.h>
 #include <sys/reboot.h>
 #include <sys/linker.h>
-#include <i386/include/bootinfo.h>
+#include <arch/i386/include/bootinfo.h>
 #include <machine/cpufunc.h>
 #include <machine/psl.h>
 #include <machine/specialreg.h>

@@ -28,7 +28,7 @@
 #include <sys/param.h>
 #include <sys/reboot.h>
 #include <sys/linker.h>
-#include <i386/include/bootinfo.h>
+#include <arch/i386/include/bootinfo.h>
 
 #include "bootstrap.h"
 #include "modinfo.h"
