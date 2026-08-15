@@ -188,8 +188,8 @@ echo "Cloning the live system to ${BSDINSTALL_CHROOT} (this may take a while)...
 	cd / || exit 1
 	tar -cf - --exclude=./${BSDINSTALL_CHROOT#/} --exclude=./dev \
 	    --exclude=./proc --exclude=./sys --exclude=./tmp --exclude=./mnt \
-	    --exclude=./var/run --exclude=./var/log --exclude=./var/tmp \
-	    --exclude=./var/db .
+	    --exclude=./boot/efi --exclude=./var/run --exclude=./var/log \
+	    --exclude=./var/tmp --exclude=./var/db .
 ) | ( cd "${BSDINSTALL_CHROOT}" && tar -xf - ) ||
     { echo "error: failed to clone the live system"; umount -a; exit 1; }
 
