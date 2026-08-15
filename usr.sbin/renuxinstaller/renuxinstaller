@@ -193,10 +193,12 @@ echo "Cloning the live system to ${BSDINSTALL_CHROOT} (this may take a while)...
 ) | ( cd "${BSDINSTALL_CHROOT}" && tar -xf - ) ||
     { echo "error: failed to clone the live system"; umount -a; exit 1; }
 
-# Make sure the runtime directories exist on the target.
-mkdir -p "${BSDINSTALL_CHROOT}/tmp" "${BSDINSTALL_CHROOT}/var/run" \
-    "${BSDINSTALL_CHROOT}/var/log" "${BSDINSTALL_CHROOT}/var/tmp" \
-    "${BSDINSTALL_CHROOT}/var/db" 2>/dev/null
+# Make sure the runtime and special directories exist on the target (the
+# clone excludes /dev, /proc, /sys and the tmpfs runtime dirs).
+mkdir -p "${BSDINSTALL_CHROOT}/dev" "${BSDINSTALL_CHROOT}/proc" \
+    "${BSDINSTALL_CHROOT}/sys" "${BSDINSTALL_CHROOT}/tmp" \
+    "${BSDINSTALL_CHROOT}/var/run" "${BSDINSTALL_CHROOT}/var/log" \
+    "${BSDINSTALL_CHROOT}/var/tmp" "${BSDINSTALL_CHROOT}/var/db" 2>/dev/null
 
 ############################################################ Boot loader
 
