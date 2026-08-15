@@ -161,7 +161,7 @@ CFLAGS+=	-include ${.OBJDIR}/opt_global.h
 # Add -I paths for system headers.  Individual module makefiles don't
 # need any -I paths for this.  Similar defaults for .PATH can't be
 # set because there are no standard paths for non-headers.
-CFLAGS+=	-I. -I${SYSDIR} -I${SYSDIR}/contrib/ck/include
+CFLAGS+=	-I. -I${SYSDIR} -I${SYSDIR}/arch -I${SYSDIR}/contrib/ck/include
 
 CFLAGS.gcc+=	-finline-limit=${INLINE_LIMIT}
 CFLAGS.gcc+=	-fms-extensions

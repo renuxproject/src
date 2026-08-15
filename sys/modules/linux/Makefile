@@ -130,14 +130,14 @@ linux${SFX}_locore.o: linux${SFX}_assym.h assym.inc
 	-msoft-float \
 	-fno-common -nostdinc -fasynchronous-unwind-tables \
 	-fno-omit-frame-pointer -foptimize-sibling-calls ${VDSOFLAGS} \
-	-fno-stack-protector -I. -I${SYSDIR} -I${SRCTOP}/include \
+	-fno-stack-protector -I. -I${SYSDIR} -I${SYSDIR}/arch -I${SRCTOP}/include \
 	    ${.IMPSRC} -o ${.TARGET}
 
 linux${SFX}_vdso_gtod.o: linux_vdso_gtod.inc ${VDSODEPS}
 	${CC} -c -fPIC -pipe -O2 -Werror -msoft-float \
 	-fno-common -nostdinc -fasynchronous-unwind-tables \
 	-fno-omit-frame-pointer -foptimize-sibling-calls ${VDSOFLAGS} \
-	-fno-stack-protector -I. -I${SYSDIR} -I${SRCTOP}/include \
+	-fno-stack-protector -I. -I${SYSDIR} -I${SYSDIR}/arch -I${SRCTOP}/include \
 	    ${.IMPSRC} -o ${.TARGET}
 
 linux${SFX}_vdso.so.o: linux${SFX}_locore.o linux${SFX}_vdso_gtod.o
