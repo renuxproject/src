@@ -94,9 +94,7 @@ jobs:
         with:
           name: renux-iso
           path: |
-            out/renux-uefi.iso
-            out/renux-bios.iso
-            out/renux-uefi.img
+            out/renux-installer.iso
           if-no-files-found: warn
 
       - name: Set release tag
@@ -116,7 +114,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           FILES=""
-          for f in out/renux-uefi.iso out/renux-bios.iso out/renux-uefi.img; do
+          for f in out/renux-installer.iso; do
             [ -f "$f" ] && FILES="$FILES $f"
           done
           gh release create "${{ steps.tag.outputs.value }}" $FILES \

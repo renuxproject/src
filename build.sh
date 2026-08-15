@@ -1426,6 +1426,54 @@ make_world_bios_iso()
 	fi
 }
 
+# Build a single hybrid world ISO (renux-installer.iso) that boots on both
+# BIOS (El Torito cdboot) and UEFI (El Torito ESP image).
+make_world_hybrid_iso()
+{
+	local cdboot loader
+	if ! is_bsd && ! command -v xorriso >/dev/null 2>&1; then
+		bomb "xorriso is required to build an ISO on this host"
+	fi
+	loader="$(find_bios_loader)"
+	[ -z "${loader}" ] && loader="<bios-loader>"
+	cdboot="$(find_cdboot)"
+	[ -z "${cdboot}" ] && cdboot="<cdboot>"
+	if [ "${runcmd}" != echo ]; then
+		cp "${cdboot}" "${WORLDDIR}/cdboot"
+		cp "${loader}" "${WORLDDIR}/boot/loader"
+	fi
+	# No console line: the loader auto-detects (efi on UEFI, vidconsole on BIOS).
+	cat > "${WORLDDIR}/boot/loader.conf" <<'EOF'
+autoboot_delay="2"
+loader_logo="renux"
+vfs.root.mountfrom="cd9660:/dev/iso9660/RENUX"
+EOF
+	cp "${WORLDDIR}/boot/loader.conf" "${WORLDDIR}/boot/defaults/loader.conf"
+	statusmsg "Building hybrid BIOS+UEFI world ISO ${IMAGEDIR}/renux-installer.iso"
+	if is_bsd; then
+		command -v makefs >/dev/null 2>&1 ||
+		    bomb "makefs is required on ${host_os}"
+		${runcmd} makefs -t cd9660 -o label=RENUX \
+		    -o bootimage=i386\;${cdboot} -o no-emul-boot \
+		    -o bootimage=efi\;${IMAGEDIR}/renux-esp-boot.img \
+		    -o no-emul-boot -o platformid=efi \
+		    "${WORLDDIR}" "${IMAGEDIR}/renux-installer.iso" ||
+		    bomb "makefs failed"
+	else
+		command -v xorriso >/dev/null 2>&1 ||
+		    bomb "xorriso is required to build an ISO on this host"
+		# xorriso needs the El Torito EFI image inside the ISO tree.
+		cp "${IMAGEDIR}/renux-esp-boot.img" "${WORLDDIR}/renux-esp.img"
+		${runcmd} xorriso -as mkisofs -V RENUX \
+		    -o "${IMAGEDIR}/renux-installer.iso" \
+		    -R -b cdboot -c boot.cat -no-emul-boot -boot-load-size 4 \
+		    -eltorito-alt-boot -e renux-esp.img -no-emul-boot -isohybrid-gpt-basdat \
+		    "${WORLDDIR}" ||
+		    bomb "xorriso failed"
+		rm -f "${WORLDDIR}/renux-esp.img"
+	fi
+}
+
 # Set up a working root login on the live ISO (password: "renux"), the usual
 # live-CD convention.  Removes the passwd databases so libc falls back to the
 # flat files, and marks the console ttys secure so root can log in anywhere.
@@ -1821,7 +1869,7 @@ main()
 			for op in ${operations}
 			do
 				case "$op" in
-				worldiso)	make_world_uefi_iso; make_world_bios_iso ;;
+				worldiso)	make_world_hybrid_iso ;;
 				esac
 			done
 		else
