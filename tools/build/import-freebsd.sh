@@ -130,7 +130,7 @@ git diff --stat
 ############################################################ Test
 
 if [ "$#" -gt 0 ]; then
-	"$@"
+	sh -c "$*"
 else
 	sh -c "$DEFAULT_TEST"
 fi
