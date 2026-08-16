@@ -1,1 +1,0 @@
-/usr/sbin/pwd_mkdb -p /etc/master.passwd 2>/dev/null

@@ -44,3 +44,4 @@ sys/*/compile
 # Renux build artifacts
 /obj/
 /src.conf
+release/

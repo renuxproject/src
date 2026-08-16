@@ -1,6 +1,0 @@
-/dev/iso9660/RENUX	/	cd9660	ro	0 0
-tmpfs			/tmp	tmpfs	rw,nosuid,mode=1777	0 0
-tmpfs			/var/run	tmpfs	rw,nosuid		0 0
-tmpfs			/var/tmp	tmpfs	rw,nosuid		0 0
-tmpfs			/var/log	tmpfs	rw,nosuid		0 0
-tmpfs			/var/db	tmpfs	rw,nosuid		0 0
