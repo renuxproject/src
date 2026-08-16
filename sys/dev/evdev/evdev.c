@@ -100,7 +100,9 @@ evdev_alloc(void)
 	evdev = malloc(sizeof(struct evdev_dev), M_EVDEV, M_WAITOK | M_ZERO);
 	evdev->ev_cdev_uid = UID_ROOT;
 	evdev->ev_cdev_gid = GID_WHEEL;
-	evdev->ev_cdev_mode = S_IRUSR | S_IWUSR;
+	/* 0660 root:wheel so users in the wheel group can use input devices
+	 * (Xorg without root); the devfs.conf rule is a boot-time backup. */
+	evdev->ev_cdev_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP;
 
 	return (evdev);
 }
