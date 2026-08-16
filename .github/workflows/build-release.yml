@@ -43,7 +43,8 @@ jobs:
         run: |
           sudo apt-get update --quiet || true
           sudo apt-get -yq --no-install-suggests --no-install-recommends install \
-            bmake libarchive-dev clang-18 lld-18 dosfstools mtools xorriso ccache
+            bmake libarchive-dev clang-18 lld-18 dosfstools mtools xorriso ccache \
+            lua5.4
           # Make clang/lld the default compilers so build.sh and make.py
           # cross-build with clang instead of gcc.
           sudo ln -sf "$(command -v clang-18)"     /usr/local/bin/clang
