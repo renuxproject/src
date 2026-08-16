@@ -187,7 +187,11 @@ local function build_make_cmd(ops)
             cmd = cmd .. " DESTDIR=" .. op:match("^install=(.*)$") .. " installworld installkernel"
         elseif op == "worldiso" then
             did, have_kernel = true, true
+            -- Install into a fresh world root (no stale files from incremental
+            -- or retried builds), but keep the directory so installworld's
+            -- NO_ROOT/METALOG handling can create its files.
             sh("rm -rf '" .. cfg.worlddir .. "'")
+            mkdir_p(cfg.worlddir)
             cmd = cmd .. " DESTDIR=" .. cfg.worlddir .. " installworld distribution installkernel"
         elseif op == "iso" or op == "bootimage" or op == "qemu" or op == "run" then
             if not have_kernel then
