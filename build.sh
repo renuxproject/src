@@ -1822,6 +1822,10 @@ main()
 			do_image=true
 			did=true
 			have_kernel=true
+			# Install into a fresh world root so the ISO never ships stale
+			# files (incremental/retried builds otherwise keep old headers,
+			# kernel or /etc from a previous run).
+			rm -rf "${WORLDDIR}"
 			cmd="${cmd} DESTDIR=${WORLDDIR} installworld distribution installkernel" ;;
 		iso|bootimage|qemu|run)
 			do_image=true
