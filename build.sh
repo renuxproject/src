@@ -1625,6 +1625,19 @@ fix_world_root_perms()
 	do
 		[ -f "${WORLDDIR}/$f" ] && chmod u+s "${WORLDDIR}/$f" 2>/dev/null || :
 	done
+	# The includes stage may leave /usr/include/sys/*.h as symlinks into the
+	# source tree (SHARED=symlinks), which break on the installed system
+	# (gcc: "sys/cdefs.h: No such file or directory").  Replace them with
+	# real copies from the source tree on the build host.  With SHARED=copies
+	# this is a no-op, but it makes incremental builds safe.
+	if [ -d "${WORLDDIR}/usr/include" ]; then
+		find "${WORLDDIR}/usr/include" -type l 2>/dev/null |
+		while read -r l; do
+			target="$(readlink "$l" 2>/dev/null)" || continue
+			src_rel="$(printf '%s' "$target" | sed 's#^\(\.\./\)*##')"
+			[ -f "${SRCDIR}/${src_rel}" ] && cp -f "${SRCDIR}/${src_rel}" "$l" 2>/dev/null
+		done
+	fi
 	touch "${WORLDDIR}/etc/fstab" 2>/dev/null || :
 }
 
