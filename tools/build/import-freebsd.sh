@@ -13,16 +13,17 @@
 # Usage:
 #   ./tools/build/import-freebsd.sh <ref> [test command...]
 #
-#   <ref>   a commit on the 'freebsd' upstream remote (e.g. freebsd/main or
-#           a 40-char SHA), a path to a .patch/.diff file, or an https:// URL.
+#   <ref>   a commit on the 'freebsd' upstream remote (e.g. freebsd/<sha>
+#           or a SHA), a path to a .patch/.diff file, or an https:// URL.
 #   test    optional command to verify the change (default: build the kernel).
 #           If it exits non-zero the change is reverted.
 #
-# Examples:
-#   git fetch freebsd stable/16
-#   ./tools/build/import-freebsd.sh freebsd/<sha>
-#   ./tools/build/import-freebsd.sh my-fix.patch
-#   ./tools/build/import-freebsd.sh https://.../patch.txt 'make -C lib/libc check'
+# For git refs the change is applied with git cherry-pick (a real 3-way
+# merge, which copes with the drift between the FreeBSD release Renux is
+# based on and FreeBSD current).  Set up upstream first:
+#
+#   git remote add freebsd https://github.com/freebsd/freebsd-src.git
+#   git fetch --filter=tree:0 freebsd main
 #
 # Translation rules (Renux layout): sys/<machine>/ -> sys/arch/<machine>/.
 # Extend TRANSLATIONS as Renux keeps diverging.
@@ -64,6 +65,15 @@ Override it by passing a command after <ref>.
 EOF
 }
 
+# Revert the given files to HEAD, removing any that are new.
+revert_files()
+{
+	for f in "$@"; do
+		[ -z "$f" ] && continue
+		git checkout HEAD -- "$f" 2>/dev/null || rm -f "$f"
+	done
+}
+
 dryrun=false
 if [ "${1:-}" = "-n" ] || [ "${1:-}" = "--dry-run" ]; then
 	dryrun=true
@@ -78,16 +88,20 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 orig="$tmp/orig.patch"
 translated="$tmp/translated.patch"
+touched=""
 
-############################################################ Obtain the patch
+############################################################ Obtain the change
 
 case "$ref" in
 http://*|https://*)
 	curl -fsSL "$ref" -o "$orig" || { echo "error: could not fetch $ref"; exit 1; }
+	sed -e "$TRANSLATIONS" "$orig" > "$translated"
+	touched="$(awk '/^diff --git/{for(i=1;i<=NF;i++) if($i ~ /^b\//) {p=$i; sub(/^b\//,"",p); print p}}' "$translated")"
 	;;
 */*|*.patch|*.diff)
 	if [ -f "$ref" ]; then
-		cp "$ref" "$orig"
+		sed -e "$TRANSLATIONS" "$ref" > "$translated"
+		touched="$(awk '/^diff --git/{for(i=1;i<=NF;i++) if($i ~ /^b\//) {p=$i; sub(/^b\//,"",p); print p}}' "$translated")"
 	else
 		echo "error: no such patch file: $ref"
 		exit 1
@@ -96,21 +110,18 @@ http://*|https://*)
 *)
 	git rev-parse --verify "$ref^{commit}" >/dev/null 2>&1 || {
 		echo "error: '$ref' is not a patch file, URL or git ref."
-		echo "hint: 'git fetch freebsd stable/16' first, then use freebsd/<sha>."
+		echo "hint: 'git fetch --filter=tree:0 freebsd main' first, then use a SHA."
 		exit 1
 	}
-	git format-patch -1 --stdout "$ref" > "$orig" || exit 1
+	git format-patch -1 --stdout "$ref" | sed -e "$TRANSLATIONS" > "$translated"
+	touched="$(git show --format= --name-only "$ref")"
 	;;
 esac
 
-[ -s "$orig" ] || { echo "error: empty patch"; exit 1; }
-
-############################################################ Translate
-
-sed -e "$TRANSLATIONS" "$orig" > "$translated"
-
-echo "Translated patch:"
-git apply --stat "$translated"
+if [ -s "$translated" ]; then
+	echo "Translated patch:"
+	git apply --stat "$translated"
+fi
 
 if [ "$dryrun" = true ]; then
 	echo "Dry run: not applying."
@@ -119,11 +130,33 @@ fi
 
 ############################################################ Apply
 
-if ! git apply --whitespace=nowarn "$translated" 2> "$tmp/apply.err"; then
-	echo "error: patch did not apply cleanly:"
-	cat "$tmp/apply.err"
-	exit 1
-fi
+case "$ref" in
+http://*|https://*|*/*|*.patch|*.diff)
+	if ! git apply --whitespace=nowarn "$translated" 2> "$tmp/apply.err"; then
+		if git apply --whitespace=nowarn --3way "$translated" 2> "$tmp/apply3.err"; then
+			echo "Applied via 3-way merge."
+			git reset -q
+		else
+			echo "error: patch did not apply cleanly:"
+			cat "$tmp/apply.err"
+			cat "$tmp/apply3.err"
+			exit 1
+		fi
+	fi
+	;;
+*)
+	# git ref: cherry-pick does a real 3-way merge against the current tree.
+	if ! git cherry-pick -n "$ref" 2> "$tmp/cp.err"; then
+		echo "error: cherry-pick failed:"
+		cat "$tmp/cp.err"
+		echo "note: run 'git cherry-pick --abort' to clean up."
+		exit 1
+	fi
+	echo "Applied via git cherry-pick."
+	git reset -q
+	;;
+esac
+
 echo "Applied. Files changed:"
 git diff --stat
 
@@ -141,13 +174,8 @@ status=$?
 if [ "$status" -ne 0 ]; then
 	echo ""
 	echo "TEST FAILED (exit $status). Reverting the FreeBSD change..."
-	if git apply -R "$translated" 2> "$tmp/revert.err"; then
-		echo "Reverted. The FreeBSD change was discarded."
-	else
-		echo "warning: automatic revert failed:"
-		cat "$tmp/revert.err"
-		echo "You may need to 'git checkout' the files manually."
-	fi
+	revert_files $touched
+	echo "Reverted. The FreeBSD change was discarded."
 	exit 1
 fi
 
