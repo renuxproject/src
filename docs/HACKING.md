@@ -1,3 +1,5 @@
+Copyright (c) 2026 Renan Lucas Vieira Hilário.
+
 # Hacking Renux
 
 Renux is designed to be hacked. It is meant to be understood, modified and

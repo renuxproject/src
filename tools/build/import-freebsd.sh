@@ -1,7 +1,7 @@
 #!/bin/sh
 #-
 # SPDX-License-Identifier: BSD-2-Clause
-# Copyright (c) 2026 The Renux Project.
+# Copyright (c) 2026 Renan Lucas Vieira Hilário.
 #
 # import-freebsd.sh - bring a FreeBSD change into the Renux tree.
 #

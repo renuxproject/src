@@ -1,6 +1,6 @@
 --[[
     SPDX-License-Identifier: BSD-2-Clause
-    Copyright (c) 2026 The Renux Project.  All rights reserved.
+    Copyright (c) 2026 Renan Lucas Vieira Hilário.  All rights reserved.
 
     renux.lua - the Renux build utility (Lua core, run by flua).
 

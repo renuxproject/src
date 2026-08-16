@@ -1,3 +1,5 @@
+Copyright (c) 2026 Renan Lucas Vieira Hilário.
+
 # Renux Decentralization
 
 Renux is a community-driven operating system designed to enable

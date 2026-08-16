@@ -12,45 +12,45 @@ Additional copyright information also exists for some sources in this tree - ple
 The Makefile in this directory supports a number of targets for building components (or all) of the Renux source tree.
 See build(7), config(8), for more information, including setting make(1) variables, in the way NetBSD conventions.
 
-Building with ./build.sh
+Building with ./renux
 -------------------------------
-Renux brings the classic NetBSD `build.sh` entry point to a modern Berkeley-heritage system.
+Renux brings the classic NetBSD-style `renux` entry point to a modern Berkeley-heritage system.
 Instead of (or in addition to) `make buildworld`/`make buildkernel`, you can
 drive the whole build from the top of the tree with one script that behaves
-like NetBSD's `build.sh`:
+like NetBSD's `renux`:
 
     # Build world (userland) and the kernel
-    ./build.sh build
+    ./renux build
 
     # Build only the kernel (kernel toolchain + kernel, no buildworld needed)
-    ./build.sh kernel=GENERIC
-    ./build.sh kernel.gdb=GENERIC       # include a GDB-debuggable kernel
-    ./build.sh kernels                   # build all kernels
+    ./renux kernel=GENERIC
+    ./renux kernel.gdb=GENERIC       # include a GDB-debuggable kernel
+    ./renux kernels                   # build all kernels
 
     # Bootable images (kernel + loader, no userland needed)
-    ./build.sh bootimage                # UEFI disk (renux-uefi.img) + BIOS ISO (renux-bios.iso)
-    ./build.sh iso                      # UEFI ISO (renux-uefi.iso) + BIOS ISO (renux-bios.iso)
-    ./build.sh qemu                     # boot UEFI image in QEMU (GUI)
-    ./build.sh -L bios qemu             # boot the BIOS ISO in QEMU (SeaBIOS)
+    ./renux bootimage                # UEFI disk (renux-uefi.img) + BIOS ISO (renux-bios.iso)
+    ./renux iso                      # UEFI ISO (renux-uefi.iso) + BIOS ISO (renux-bios.iso)
+    ./renux qemu                     # boot UEFI image in QEMU (GUI)
+    ./renux -L bios qemu             # boot the BIOS ISO in QEMU (SeaBIOS)
 
     # Other useful operations
-    ./build.sh world                     # buildworld only
-    ./build.sh distribution             # build distribution
-    ./build.sh release                  # build a release
-    ./build.sh update                   # git pull --ff-only
-    ./build.sh show-params              # show the build parameters
-    ./build.sh list-arch                # list supported architectures
+    ./renux world                     # buildworld only
+    ./renux distribution             # build distribution
+    ./renux release                  # build a release
+    ./renux update                   # git pull --ff-only
+    ./renux show-params              # show the build parameters
+    ./renux list-arch                # list supported architectures
 
     # Options
-    ./build.sh -m amd64 -a amd64    kernel=GENERIC   # explicit target
-    ./build.sh -j 8                 build           # parallel make
-    ./build.sh -n                   kernel=GENERIC   # dry-run (show commands)
-    ./build.sh -K                   iso             # kernel-only image
-    ./build.sh -I /some/out/dir     bootimage       # output image directory
-    ./build.sh -D /some/dest        world           # set DESTDIR
-    ./build.sh -U                   world           # unprivileged (NO_ROOT)
+    ./renux -m amd64 -a amd64    kernel=GENERIC   # explicit target
+    ./renux -j 8                 build           # parallel make
+    ./renux -n                   kernel=GENERIC   # dry-run (show commands)
+    ./renux -K                   iso             # kernel-only image
+    ./renux -I /some/out/dir     bootimage       # output image directory
+    ./renux -D /some/dest        world           # set DESTDIR
+    ./renux -U                   world           # unprivileged (NO_ROOT)
 
-`./build.sh` is self-contained and portable: it runs on any Unix host
+`./renux` is self-contained and portable: it runs on any Unix host
 (FreeBSD, Linux, NetBSD, OpenBSD, DragonFly or macOS), automatically
 provisions missing host tools (e.g. `time`, `bc`, `hostname`) into
 `obj/host-shims`, builds a kernel without requiring a prior `buildworld`
