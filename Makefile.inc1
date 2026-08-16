@@ -1228,10 +1228,10 @@ _includes:
 	@echo "--------------------------------------------------------------"
 # Special handling for SUBDIR_OVERRIDE in buildworld as they most likely need
 # headers from default SUBDIR.  Do SUBDIR_OVERRIDE includes last.
-	${_+_}cd ${.CURDIR}; ${WMAKE} SUBDIR_OVERRIDE= SHARED=symlinks \
+	${_+_}cd ${.CURDIR}; ${WMAKE} SUBDIR_OVERRIDE= SHARED=copies \
 	    MK_INCLUDES=yes includes
 .if !empty(SUBDIR_OVERRIDE) && make(buildworld)
-	${_+_}cd ${.CURDIR}; ${WMAKE} MK_INCLUDES=yes SHARED=symlinks includes
+	${_+_}cd ${.CURDIR}; ${WMAKE} MK_INCLUDES=yes SHARED=copies includes
 .endif
 	${_+_}cd ${.CURDIR}; ${WMAKE} test-includes
 _libraries:
