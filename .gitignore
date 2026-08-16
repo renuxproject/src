@@ -44,4 +44,10 @@ sys/*/compile
 # Renux build artifacts
 /obj/
 /src.conf
-release/
+release/world-root/
+release/renux-*.iso
+release/renux-*.img
+release/renux-esp-boot.img
+release/renux-esp.img
+release/esp-boot-stage/
+release/cdboot
