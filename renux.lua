@@ -39,6 +39,11 @@ local cfg = {
     kernel_only     = false,
     make_py         = root .. "/tools/build/make.py",
 }
+
+-- Resolve a path to absolute (installworld's NO_ROOT -M/-D flags are used
+-- from sub-makes whose CWD is the object tree, so relative paths break).
+-- Defined here; initialized with a call after the helpers below.
+local abs_path
 cfg.worlddir = cfg.imagdir .. "/world-root"
 
 ----------------------------------------------------------------------------
@@ -97,6 +102,15 @@ end
 local function objroot()
     return cfg.makeobjdir .. cfg.srcdir .. "/" .. cfg.target .. "." .. cfg.target_arch
 end
+
+abs_path = function(p)
+    sh("mkdir -p '" .. p .. "' 2>/dev/null")
+    local h = io.popen("cd '" .. p .. "' && pwd")
+    local out = h:read("*l"); h:close()
+    return out or p
+end
+cfg.imagdir = abs_path(cfg.imagdir)
+cfg.worlddir = cfg.imagdir .. "/world-root"
 
 local W = function() return cfg.worlddir end
 
@@ -437,7 +451,7 @@ while pos <= #args do
     if a == "-j" or a == "-I" or a == "-m" or a == "-a" or a == "-M" then
         local val = args[pos + 1] or ""
         if a == "-j" then cfg.parallel = "-j " .. val
-        elseif a == "-I" then cfg.imagdir = val; cfg.worlddir = val .. "/world-root"
+        elseif a == "-I" then cfg.imagdir = abs_path(val); cfg.worlddir = cfg.imagdir .. "/world-root"
         elseif a == "-m" then cfg.target = val
         elseif a == "-a" then cfg.target_arch = val
         elseif a == "-M" then cfg.makeobjdir = val
