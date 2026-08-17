@@ -200,6 +200,12 @@ mkdir -p "${BSDINSTALL_CHROOT}/dev" "${BSDINSTALL_CHROOT}/proc" \
     "${BSDINSTALL_CHROOT}/sys" "${BSDINSTALL_CHROOT}/tmp" \
     "${BSDINSTALL_CHROOT}/var/run" "${BSDINSTALL_CHROOT}/var/log" \
     "${BSDINSTALL_CHROOT}/var/tmp" "${BSDINSTALL_CHROOT}/var/db" 2>/dev/null
+# mkdir -p honours the umask, so the fresh dirs are 0755 root.  /tmp and
+# /var/tmp must be 1777 (sticky, world-writable): Xorg's xkbcomp writes
+# /tmp/server-0.xhm there and fails with "cannot open /tmp/server-0.xhm"
+# (then "failed to activate virtual core keyboard: 2") for regular users.
+chmod 1777 "${BSDINSTALL_CHROOT}/tmp" "${BSDINSTALL_CHROOT}/var/tmp"
+chmod 0775 "${BSDINSTALL_CHROOT}/var/run" "${BSDINSTALL_CHROOT}/var/log"
 
 # bsdtar matches an exclude pattern like './sys' against the basename of any
 # path component, not just the top-level mount point.  The clone above
