@@ -95,6 +95,7 @@ jobs:
           name: renux-iso
           path: |
             out/renux-installer.iso
+            out/renux-installer.iso.xz
           if-no-files-found: warn
 
       - name: Set release tag
@@ -114,7 +115,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           FILES=""
-          for f in out/renux-installer.iso; do
+          for f in out/renux-installer.iso out/renux-installer.iso.xz; do
             if [ -f "$f" ]; then
               # GitHub caps release assets at 2 GiB; skip oversized ones.
               if [ "$(stat -c %s "$f" 2>/dev/null || stat -f %z "$f")" -ge 2147483648 ]; then

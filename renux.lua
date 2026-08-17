@@ -378,6 +378,18 @@ vfs.root.mountfrom="cd9660:/dev/iso9660/RENUX"
         run("xorriso -as mkisofs -V RENUX -o '" .. iso .. "' -R -b cdboot -c boot.cat -no-emul-boot -boot-load-size 4 -eltorito-alt-boot -e renux-esp.img -no-emul-boot -isohybrid-gpt-basdat '" .. W() .. "'")
         run("rm -f '" .. W() .. "/renux-esp.img'")
     end
+    -- Ship a max-compression .xz too (GitHub caps release assets at 2 GiB,
+    -- and a compressed image is a much smaller download).
+    if have("xz") then
+        status("Compressing " .. iso .. " (xz -9e)...")
+        if cfg.runcmd ~= "echo" then
+            run("xz -9e -T0 -c '" .. iso .. "' > '" .. iso .. ".xz'")
+        else
+            print("xz -9e -T0 -c '" .. iso .. "' > '" .. iso .. ".xz'")
+        end
+    else
+        status("warning: xz not found; skipping .xz build")
+    end
 end
 
 ----------------------------------------------------------------------------
