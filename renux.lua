@@ -160,7 +160,7 @@ local function build_make_cmd(ops)
     if cfg.update then cmd = cmd .. " --no-clean" end
     if cfg.parallel then cmd = cmd .. " " .. cfg.parallel end
     cmd = cmd .. " TARGET=" .. cfg.target .. " TARGET_ARCH=" .. cfg.target_arch
-    cmd = cmd .. " MK_SSP=no"
+    cmd = cmd .. " MK_SSP=no MK_TESTS=no"
 
     local have_kernel = false
     local did = false

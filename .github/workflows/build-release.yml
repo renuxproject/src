@@ -149,7 +149,14 @@ jobs:
         run: |
           FILES=""
           for f in release/renux-installer.iso; do
-            [ -f "$f" ] && FILES="$FILES $f"
+            if [ -f "$f" ]; then
+              # GitHub caps release assets at 2 GiB; skip oversized ones.
+              if [ "$(stat -c %s "$f" 2>/dev/null || stat -f %z "$f")" -ge 2147483648 ]; then
+                echo "::warning::$f exceeds GitHub's 2 GiB release asset limit; skipping upload"
+              else
+                FILES="$FILES $f"
+              fi
+            fi
           done
           {
             printf '%s\n' "EXPERIMENTAL - NOT a stable release of Renux."
