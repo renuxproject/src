@@ -172,8 +172,16 @@ jobs:
             printf '%s\n' "Renux is community-driven and decentralized; forks and independent efforts are welcome."
             printf '%s\n' "See DECENTRALIZATION.md. Website: https://renuxproject.github.io"
           } > release-notes.md
-          gh release create "${{ steps.tag.outputs.value }}" $FILES \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "Renux ${{ steps.tag.outputs.value }}" \
-            --prerelease \
-            --notes-file release-notes.md
+          # gh release create can hit transient GitHub errors (5xx); retry.
+          for attempt in 1 2 3 4 5; do
+            if gh release create "${{ steps.tag.outputs.value }}" $FILES \
+                --repo "$GITHUB_REPOSITORY" \
+                --title "Renux ${{ steps.tag.outputs.value }}" \
+                --prerelease \
+                --notes-file release-notes.md; then
+              exit 0
+            fi
+            echo "release create attempt $attempt failed; retrying in 15s"
+            sleep 15
+          done
+          exit 1
