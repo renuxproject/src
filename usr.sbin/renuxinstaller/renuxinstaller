@@ -201,6 +201,24 @@ mkdir -p "${BSDINSTALL_CHROOT}/dev" "${BSDINSTALL_CHROOT}/proc" \
     "${BSDINSTALL_CHROOT}/var/run" "${BSDINSTALL_CHROOT}/var/log" \
     "${BSDINSTALL_CHROOT}/var/tmp" "${BSDINSTALL_CHROOT}/var/db" 2>/dev/null
 
+# bsdtar matches an exclude pattern like './sys' against the basename of any
+# path component, not just the top-level mount point.  The clone above
+# therefore silently drops nested directories such as /usr/include/sys (gcc
+# then fails with "sys/cdefs.h: No such file").  The '-./var/run' style
+# patterns are safe (they contain a slash and only match the full path), but
+# the short names (dev, proc, sys, tmp, mnt) are not.  Restore any nested
+# directories the live system actually ships.
+for base in sys dev proc tmp mnt; do
+    find /usr /boot -type d -name "$base" 2>/dev/null |
+    while IFS= read -r d; do
+        rel="${d#/}"
+        [ -e "${BSDINSTALL_CHROOT}/${rel}" ] && continue
+        mkdir -p "${BSDINSTALL_CHROOT}/${rel%/*}" 2>/dev/null
+        cp -a "$d" "${BSDINSTALL_CHROOT}/${rel%/*}/" 2>/dev/null &&
+            echo "restored ${rel}"
+    done
+done
+
 ############################################################ Boot loader
 
 # UEFI: the EFI loader lives at /EFI/BOOT/BOOTX64.EFI in the world (the
