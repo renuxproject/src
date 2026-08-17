@@ -42,5 +42,10 @@ return {
 		},
 		requires_color = true,
 		shift = {x = 1, y = -2},
+		fb = {
+			image = "/boot/images/renux-logo.png",
+			width = 12,
+			shift = {x = 2, y = -4},
+		},
 	}
 }
