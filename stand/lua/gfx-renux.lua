@@ -40,11 +40,11 @@ return {
 		    "\027[32;1m +**+ =*+:+#* -*. ** -*=-*=+#.=#- \027[m",
 		    "\027[32;1m                                  \027[m",
 		},
-		requires_color = true,
+		requires_color = false,
 		shift = {x = 1, y = -2},
 		fb = {
 			image = "/boot/images/renux-logo.png",
-			width = 12,
+			width = 8,
 			shift = {x = 2, y = -4},
 		},
 	}
