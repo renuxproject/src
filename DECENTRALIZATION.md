@@ -85,3 +85,11 @@ Decentralization is not limited to git: the system is built so that components
 (kernel, init, libc, userland, network, storage, packaging) can evolve
 relatively independently, mirroring the `sys/arch` separation already present
 in the tree.
+
+## Privacy: no age verification
+
+Renux is built for people who own their own system. It does not collect
+personal data and does not require or perform age verification, and it will
+not implement mandatory age-verification schemes - including those proposed
+by Brazil's "Lei Felca" or California law. Privacy is not a feature to be
+traded: it is a property of how the system is designed.
