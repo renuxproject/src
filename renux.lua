@@ -298,8 +298,8 @@ local function stage_world_root()
         end
         run("cp '" .. loader .. "' '" .. W() .. "/EFI/BOOT/BOOTX64.EFI'")
     end
-    run("cp '" .. cfg.srcdir .. "/stand/lua/*.lua' '" .. W() .. "/boot/lua/'")
-    run("cp '" .. cfg.srcdir .. "/stand/images/*.png' '" .. W() .. "/boot/images/'")
+    run("cp " .. cfg.srcdir .. "/stand/lua/*.lua '" .. W() .. "/boot/lua/'")
+    run("cp " .. cfg.srcdir .. "/stand/images/*.png '" .. W() .. "/boot/images/'")
 end
 
 local function fix_world_root_perms()
