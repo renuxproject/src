@@ -187,11 +187,22 @@ local function build_make_cmd(ops)
             cmd = cmd .. " DESTDIR=" .. op:match("^install=(.*)$") .. " installworld installkernel"
         elseif op == "worldiso" then
             did, have_kernel = true, true
-            -- Pre-create the world root directory structure and the NO_ROOT
-            -- METALOG with distrib-dirs, so installworld works even on a
-            -- fresh/empty DESTDIR (mtree otherwise only runs after it).
-            cmd = cmd .. " DESTDIR=" .. cfg.worlddir .. " distrib-dirs"
-            cmd = cmd .. " installworld distribution installkernel"
+            -- NO_ROOT installworld only records dirs in the METALOG
+            -- (distrib-dirs) instead of creating them physically, so a fresh
+            -- DESTDIR lacks them.  Pre-create the base dirs + an empty
+            -- METALOG so installworld works on the first attempt.
+            for _, d in ipairs({
+                "/bin", "/sbin", "/etc", "/root", "/dev", "/tmp", "/var", "/usr",
+                "/usr/bin", "/usr/sbin", "/usr/lib", "/usr/libexec", "/usr/share",
+                "/usr/include", "/usr/src", "/usr/tests", "/usr/lib/debug",
+                "/usr/lib32", "/usr/local",
+                "/var/run/devd", "/var/tmp", "/var/log", "/var/db",
+                "/var/spool", "/var/empty", "/var/mail", "/var/account",
+            }) do
+                sh("mkdir -p '" .. cfg.worlddir .. d .. "'")
+            end
+            sh("touch '" .. cfg.worlddir .. "/METALOG'")
+            cmd = cmd .. " DESTDIR=" .. cfg.worlddir .. " installworld distribution installkernel"
         elseif op == "iso" or op == "bootimage" or op == "qemu" or op == "run" then
             if not have_kernel then
                 did, have_kernel = true, true
