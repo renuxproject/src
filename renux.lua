@@ -187,11 +187,11 @@ local function build_make_cmd(ops)
             cmd = cmd .. " DESTDIR=" .. op:match("^install=(.*)$") .. " installworld installkernel"
         elseif op == "worldiso" then
             did, have_kernel = true, true
-            -- installworld with NO_ROOT needs the world root directory and its
-            -- METALOG/base dirs; a fresh empty root fails, and deleting it on
-            -- every retry prevents the retry from ever completing.  Leave it
-            -- as installworld left it.
-            cmd = cmd .. " DESTDIR=" .. cfg.worlddir .. " installworld distribution installkernel"
+            -- Pre-create the world root directory structure and the NO_ROOT
+            -- METALOG with distrib-dirs, so installworld works even on a
+            -- fresh/empty DESTDIR (mtree otherwise only runs after it).
+            cmd = cmd .. " DESTDIR=" .. cfg.worlddir .. " distrib-dirs"
+            cmd = cmd .. " installworld distribution installkernel"
         elseif op == "iso" or op == "bootimage" or op == "qemu" or op == "run" then
             if not have_kernel then
                 did, have_kernel = true, true
