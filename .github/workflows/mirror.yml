@@ -31,7 +31,8 @@ jobs:
           if [ -z "$DISROOT_DEPLOY_KEY" ]; then
             echo "::error::DISROOT_DEPLOY_KEY secret is not set."
             echo "Add a deploy key (private part, write access) for"
-            echo "git.disroot.org/renuxproject/src as a GitHub Actions secret."
+            echo "git.disroot.org/renux/src and renuxproject/src as a GitHub"
+            echo "Actions secret."
             exit 1
           fi
           mkdir -p ~/.ssh
@@ -42,6 +43,8 @@ jobs:
             'git.disroot.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBl6QhMLV//e4QkBnkk8eyFbL1B0CTrJ1HiTaqncGSv1' \
             > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
-          git remote add disroot git@git.disroot.org:renuxproject/src.git
-          git push --force --prune disroot refs/heads/main:refs/heads/main
-          git push --force --prune disroot 'refs/tags/*:refs/tags/*'
+          for repo in renux/src renuxproject/src; do
+            git remote add "$repo" "git@git.disroot.org:$repo.git" 2>/dev/null || true
+            git push --force --prune "$repo" refs/heads/main:refs/heads/main
+            git push --force --prune "$repo" 'refs/tags/*:refs/tags/*'
+          done
