@@ -243,7 +243,7 @@ end
 local function build_pkg()
     if cfg.runcmd == "echo" then status("build renux pkg fork"); return end
 
-    local pin     = "940ecfb05"
+    local pin     = "669900065"
     local pkg_src = cfg.imagdir .. "/pkg-fork"
     local tgt     = cfg.target .. "-unknown-freebsd15.0"
     local sysroot = W()
@@ -259,9 +259,13 @@ local function build_pkg()
     end
     sh("cd '" .. pkg_src .. "' && git fetch --depth 1 origin '" .. pin .. "' 2>/dev/null && git checkout -f '" .. pin .. "' 2>/dev/null")
 
-    local cc = "clang -target " .. tgt .. " --sysroot='" .. sysroot .. "'"
-    local ok = sh("cd '" .. pkg_src .. "' && CC='" .. cc .. "' ./configure --host=" .. tgt ..
-        " --prefix=/usr/local 2>&1")
+    local cc = "clang -target " .. tgt .. " --sysroot=" .. sysroot .. " -fuse-ld=lld"
+    local cflags = "-I" .. sysroot .. "/usr/include"
+    local ldflags = "-L" .. sysroot .. "/lib -L" .. sysroot .. "/usr/lib" ..
+        " -Wl,-rpath-link," .. sysroot .. "/lib -Wl,-rpath-link," .. sysroot .. "/usr/lib" ..
+        " -Wl,--undefined-version"
+    local ok = sh("cd '" .. pkg_src .. "' && ./configure 'CC=" .. cc .. "' 'CFLAGS=" .. cflags ..
+        "' 'LDFLAGS=" .. ldflags .. "' --prefix=/usr/local 2>&1")
     if ok then ok = sh("cd '" .. pkg_src .. "' && make " .. make_j .. " 2>&1") end
     if ok then ok = sh("cd '" .. pkg_src .. "' && make DESTDIR='" .. sysroot .. "' install 2>&1") end
 
