@@ -231,6 +231,51 @@ end
 -- World staging
 ----------------------------------------------------------------------------
 
+---------------------------------------------------------------------------
+-- Build the Renux pkg (the parallel-download fork) into the world root.
+--
+-- Cross-compiles the renuxproject/pkg fork against the installed world as
+-- the sysroot and replaces the base FreeBSD bootstrap at /usr/sbin/pkg, so
+-- the live/installed system never downloads pkg from pkg.FreeBSD.org.
+-- On failure we warn and keep the bootstrap, so the ISO still builds.
+---------------------------------------------------------------------------
+
+local function build_pkg()
+    if cfg.runcmd == "echo" then status("build renux pkg fork"); return end
+
+    local pin     = "940ecfb05"
+    local pkg_src = cfg.imagdir .. "/pkg-fork"
+    local tgt     = cfg.target .. "-unknown-freebsd15.0"
+    local sysroot = W()
+    local make_j  = cfg.parallel or "-j4"
+
+    status("Building the Renux pkg fork (parallel downloads) into the world root")
+
+    if not os.execute("[ -d '" .. pkg_src .. "/.git' ]") then
+        if not sh("git clone --depth 1 https://github.com/renuxproject/pkg.git '" .. pkg_src .. "' 2>&1") then
+            status("warning: could not clone the Renux pkg fork; keeping the FreeBSD pkg bootstrap")
+            return
+        end
+    end
+    sh("cd '" .. pkg_src .. "' && git fetch --depth 1 origin '" .. pin .. "' 2>/dev/null && git checkout -f '" .. pin .. "' 2>/dev/null")
+
+    local cc = "clang -target " .. tgt .. " --sysroot='" .. sysroot .. "'"
+    local ok = sh("cd '" .. pkg_src .. "' && CC='" .. cc .. "' ./configure --host=" .. tgt ..
+        " --prefix=/usr/local 2>&1")
+    if ok then ok = sh("cd '" .. pkg_src .. "' && make " .. make_j .. " 2>&1") end
+    if ok then ok = sh("cd '" .. pkg_src .. "' && make DESTDIR='" .. sysroot .. "' install 2>&1") end
+
+    if not ok then
+        status("warning: the Renux pkg fork failed to build; keeping the FreeBSD pkg bootstrap")
+        return
+    end
+
+    -- Make `pkg` unambiguously the Renux fork: replace the base bootstrap
+    -- (/usr/sbin/pkg), which sits before /usr/local/sbin on the default PATH.
+    sh("cp -f '" .. sysroot .. "/usr/local/sbin/pkg' '" .. sysroot .. "/usr/sbin/pkg' 2>/dev/null")
+    status("Renux pkg fork installed (parallel downloads, PKG_PARALLEL_JOBS)")
+end
+
 local function stage_root_login()
     local etc = W() .. "/etc"
     mkdir_p(etc .. "/pkg"); mkdir_p(W() .. "/root")
@@ -505,6 +550,7 @@ end
 if do_image then
     mkdir_p(cfg.imagdir)
     if world_image then
+        build_pkg()
         stage_root_login()
         generate_passwd_db()
         stage_world_root()
