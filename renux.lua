@@ -243,7 +243,7 @@ end
 local function build_pkg()
     if cfg.runcmd == "echo" then status("build renux pkg fork"); return end
 
-    local pin     = "669900065"
+    local pin     = "e5a9c8f6f"
     local pkg_src = cfg.imagdir .. "/pkg-fork"
     local tgt     = cfg.target .. "-unknown-freebsd15.0"
     local sysroot = W()
