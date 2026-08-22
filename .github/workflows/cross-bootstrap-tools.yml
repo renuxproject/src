@@ -20,12 +20,6 @@ jobs:
         include:
           - target_arch: amd64
             target: amd64
-            os: ubuntu-22.04
-            compiler: clang-14
-            cross-bindir: /usr/lib/llvm-14/bin
-            pkgs: bmake libarchive-dev clang-14 lld-14
-          - target_arch: amd64
-            target: amd64
             os: ubuntu-24.04
             compiler: clang-18
             cross-bindir: /usr/lib/llvm-18/bin
@@ -33,27 +27,8 @@ jobs:
           - target_arch: amd64
             target: amd64
             os: macos-latest
-            compiler: clang-18
-            cross-toolchain: llvm@18
-            pkgs: bmake libarchive llvm@18
-          - target_arch: aarch64
-            target: arm64
-            os: ubuntu-22.04
-            compiler: clang-14
-            cross-bindir: /usr/lib/llvm-14/bin
-            pkgs: bmake libarchive-dev clang-14 lld-14
-          - target_arch: aarch64
-            target: arm64
-            os: ubuntu-24.04
-            compiler: clang-18
-            cross-bindir: /usr/lib/llvm-18/bin
-            pkgs: bmake libarchive-dev clang-18 lld-18
-          - target_arch: aarch64
-            target: arm64
-            os: macos-latest
-            compiler: clang-18
-            cross-toolchain: llvm@18
-            pkgs: bmake libarchive llvm@18
+            compiler: clang
+            pkgs: bmake libarchive
     steps:
       - uses: actions/checkout@v4
 
@@ -76,13 +51,6 @@ jobs:
           mkdir -p ../build
           echo "MAKEOBJDIRPREFIX=${PWD%/*}/build" >> $GITHUB_ENV
           echo "NPROC=`getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 1`" >> $GITHUB_ENV
-
-      - name: bootstrap bmake
-        run: |
-          EXTRA=""
-          if [ -n "${{ matrix.cross-bindir }}" ]; then EXTRA="$EXTRA --cross-bindir=${{ matrix.cross-bindir }}"; fi
-          if [ -n "${{ matrix.cross-toolchain }}" ]; then EXTRA="$EXTRA --cross-toolchain=${{ matrix.cross-toolchain }}"; fi
-          ./renux -n -m ${{ matrix.target }} -a ${{ matrix.target_arch }} -- --debug $EXTRA
 
       - name: make kernel-toolchain
         run: |
