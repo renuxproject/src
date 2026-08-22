@@ -12,18 +12,12 @@ permissions:
 
 jobs:
   build:
-    name: ${{ matrix.target_arch }} ${{ matrix.os }} (${{ matrix.compiler }})
+    name: amd64 ${{ matrix.os }} (${{ matrix.compiler }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target_arch: amd64
-            target: amd64
-            os: ubuntu-24.04
-            compiler: clang-18
-            cross-bindir: /usr/lib/llvm-18/bin
-            pkgs: bmake libarchive-dev clang-18 lld-18
           - target_arch: amd64
             target: amd64
             os: macos-latest
@@ -32,15 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: install packages (Ubuntu)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update --quiet || true
-          sudo apt-get -yq --no-install-suggests --no-install-recommends install \
-            ${{ matrix.pkgs }} lua5.4
-
       - name: install packages (macOS)
-        if: runner.os == 'macOS'
         run: |
           brew update --quiet || true
           brew install ${{ matrix.pkgs }} lua || true
@@ -54,14 +40,8 @@ jobs:
 
       - name: make kernel-toolchain
         run: |
-          EXTRA=""
-          if [ -n "${{ matrix.cross-bindir }}" ]; then EXTRA="$EXTRA --cross-bindir=${{ matrix.cross-bindir }}"; fi
-          if [ -n "${{ matrix.cross-toolchain }}" ]; then EXTRA="$EXTRA --cross-toolchain=${{ matrix.cross-toolchain }}"; fi
-          ./renux tools -m ${{ matrix.target }} -a ${{ matrix.target_arch }} -- --debug -s -j$NPROC -DWITH_DISK_IMAGE_TOOLS_BOOTSTRAP $EXTRA
+          ./renux tools -m ${{ matrix.target }} -a ${{ matrix.target_arch }} -- --debug -s -j$NPROC -DWITH_DISK_IMAGE_TOOLS_BOOTSTRAP
 
       - name: make buildkernel
         run: |
-          EXTRA=""
-          if [ -n "${{ matrix.cross-bindir }}" ]; then EXTRA="$EXTRA --cross-bindir=${{ matrix.cross-bindir }}"; fi
-          if [ -n "${{ matrix.cross-toolchain }}" ]; then EXTRA="$EXTRA --cross-toolchain=${{ matrix.cross-toolchain }}"; fi
-          ./renux kernels -m ${{ matrix.target }} -a ${{ matrix.target_arch }} -- --debug -s -j$NPROC NO_MODULES=yes $EXTRA
+          ./renux kernels -m ${{ matrix.target }} -a ${{ matrix.target_arch }} -- --debug -s -j$NPROC NO_MODULES=yes
