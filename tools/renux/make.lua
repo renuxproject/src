@@ -43,7 +43,7 @@ local function build_make_cmd(ops)
             did = true
             if not cfg.kernel_only then cmd = cmd .. " buildworld buildkernel" end
         elseif op == "tools" then
-            did = true; cmd = cmd .. " build-tools"
+            did = true; cmd = cmd .. " toolchain"
         elseif op == "kernels" then
             did, have_kernel = true, true
             cmd = cmd .. " WERROR= kernel-toolchain buildkernel"
