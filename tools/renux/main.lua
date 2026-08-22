@@ -126,6 +126,10 @@ return function(main_arg)
         local a = args[pos]
         if a == "-j" or a == "-I" or a == "-m" or a == "-a" or a == "-M" then
             local val = args[pos + 1] or ""
+            if val == "" or val:sub(1, 1) == "-" then
+                io.stderr:write(c.red .. "error" .. c.reset .. ": " .. a .. " requires a value\n")
+                os.exit(1)
+            end
             if a == "-j" then cfg.parallel = "-j " .. val
             elseif a == "-I" then cfg.imagdir = H.abs_path(val); cfg.worlddir = cfg.imagdir .. "/world-root"
             elseif a == "-m" then cfg.target = val

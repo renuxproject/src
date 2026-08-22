@@ -2,7 +2,7 @@ name: Cross-build Kernel
 
 on:
   push:
-    branches: [ main, 'stable/[1-9][0-9]' ]
+    branches: [ main, 'stable/[1-9][10]' ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -17,23 +17,43 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target_arch: [ amd64 ]
-        os: [ ubuntu-24.04, macos-latest ]
         include:
-          - os: ubuntu-22.04
+          - target_arch: amd64
+            target: amd64
+            os: ubuntu-22.04
             compiler: clang-14
             cross-bindir: /usr/lib/llvm-14/bin
             pkgs: bmake libarchive-dev clang-14 lld-14
-          - os: ubuntu-24.04
+          - target_arch: amd64
+            target: amd64
+            os: ubuntu-24.04
             compiler: clang-18
             cross-bindir: /usr/lib/llvm-18/bin
             pkgs: bmake libarchive-dev clang-18 lld-18
-          - os: macos-latest
+          - target_arch: amd64
+            target: amd64
+            os: macos-latest
             compiler: clang-18
             cross-toolchain: llvm@18
             pkgs: bmake libarchive llvm@18
-          - target_arch: amd64
-            target: amd64
+          - target_arch: aarch64
+            target: arm64
+            os: ubuntu-22.04
+            compiler: clang-14
+            cross-bindir: /usr/lib/llvm-14/bin
+            pkgs: bmake libarchive-dev clang-14 lld-14
+          - target_arch: aarch64
+            target: arm64
+            os: ubuntu-24.04
+            compiler: clang-18
+            cross-bindir: /usr/lib/llvm-18/bin
+            pkgs: bmake libarchive-dev clang-18 lld-18
+          - target_arch: aarch64
+            target: arm64
+            os: macos-latest
+            compiler: clang-18
+            cross-toolchain: llvm@18
+            pkgs: bmake libarchive llvm@18
     steps:
       - uses: actions/checkout@v4
 
