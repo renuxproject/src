@@ -39,19 +39,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install build dependencies (clang toolchain)
+      - name: Install build dependencies
         run: |
           sudo apt-get update --quiet || true
           sudo apt-get -yq --no-install-suggests --no-install-recommends install \
             bmake libarchive-dev clang-18 lld-18 dosfstools mtools xorriso ccache \
             lua5.4 xz-utils libtool pkg-config make
-          # Make clang/lld the default compilers so build.sh and make.py
-          # cross-build with clang instead of gcc.
           sudo ln -sf "$(command -v clang-18)"     /usr/local/bin/clang
           sudo ln -sf "$(command -v clang++-18)"   /usr/local/bin/clang++
           sudo ln -sf "$(command -v clang-cpp-18)" /usr/local/bin/clang-cpp
           sudo ln -sf "$(command -v ld.lld-18)"    /usr/local/bin/ld.lld
-          # The loader/host build (stand/) looks for the linker in /usr/bin.
           sudo ln -sf "$(command -v clang-18)"     /usr/bin/clang
           sudo ln -sf "$(command -v clang++-18)"   /usr/bin/clang++
           sudo ln -sf "$(command -v clang-cpp-18)" /usr/bin/clang-cpp
@@ -63,12 +60,9 @@ jobs:
           mkdir -p ../build
           echo "MAKEOBJDIRPREFIX=${PWD%/*}/build" >> "$GITHUB_ENV"
           echo "NPROC=$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 2)" >> "$GITHUB_ENV"
-          # Use clang for the host bootstrap tools too (not just the cross toolchain).
           echo "CC=clang"      >> "$GITHUB_ENV"
           echo "CXX=clang++"   >> "$GITHUB_ENV"
           echo "CPP=clang-cpp" >> "$GITHUB_ENV"
-          # Enable ccache (caches compiler output by content, so it works across
-          # runs even though file mtimes reset on every ephemeral runner).
           echo "MK_CCACHE_BUILD=yes" >> "$GITHUB_ENV"
           echo "CCACHE_BIN=/usr/bin/ccache" >> "$GITHUB_ENV"
           echo "CCACHE_DIR=${PWD%/*}/ccache" >> "$GITHUB_ENV"
@@ -99,9 +93,7 @@ jobs:
           fi
           for attempt in 1 2 3 4; do
             echo "::group::build attempt ${attempt}"
-            # Run as root so installworld -U produces root-owned files in the
-            # world root (the cross-build install wrapper can't set -o/-g).
-            if sudo -E ./build.sh -j "$NPROC" -I release $TARGETS; then
+            if sudo -E ./renux -j "$NPROC" -I release $TARGETS; then
               echo "::endgroup::"
               exit 0
             fi
@@ -116,8 +108,6 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          # run_id makes the key unique per run so the save never collides
-          # with an earlier cache of the same commit.
           key: renux-ccache-${{ runner.os }}-${{ github.sha }}-${{ github.run_id }}
 
       - name: List artifacts
@@ -151,7 +141,6 @@ jobs:
           FILES=""
           for f in release/renux-installer.iso release/renux-installer.iso.xz; do
             if [ -f "$f" ]; then
-              # GitHub caps release assets at 2 GiB; skip oversized ones.
               if [ "$(stat -c %s "$f" 2>/dev/null || stat -f %z "$f")" -ge 2147483648 ]; then
                 echo "::warning::$f exceeds GitHub's 2 GiB release asset limit; skipping upload"
               else
@@ -172,7 +161,6 @@ jobs:
             printf '%s\n' "Renux is community-driven and decentralized; forks and independent efforts are welcome."
             printf '%s\n' "See DECENTRALIZATION.md. Website: https://renuxproject.github.io"
           } > release-notes.md
-          # gh release create can hit transient GitHub errors (5xx); retry.
           for attempt in 1 2 3 4 5; do
             if gh release create "${{ steps.tag.outputs.value }}" $FILES \
                 --repo "$GITHUB_REPOSITORY" \

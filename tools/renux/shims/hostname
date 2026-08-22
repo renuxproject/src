@@ -1,0 +1,4 @@
+#!/bin/sh
+# Shim: provides hostname when the host system lacks it.
+# The FreeBSD build system requires this during host-symlinks.
+exec uname -n

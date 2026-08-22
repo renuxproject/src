@@ -204,7 +204,7 @@ build_release_task:
   - mkdir -p /usr/obj/$(pwd -P)
 
   build_script:
-  - ./build.sh -j$(nproc) -I out build iso
+  - ./renux -j$(nproc) -I out build iso
 
   list_script:
   - ls -lh out/

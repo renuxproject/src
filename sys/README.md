@@ -19,10 +19,10 @@ These pages are located in [`share/man/man9`](../share/man/man9), from the
 top-level of the src tree. Consult the man pages in that directory for an
 overview of the kernel interfaces.
 
-The kernel is built with the Renux `./build.sh` wrapper, e.g.:
+The kernel is built with the Renux `./renux` wrapper, e.g.:
 
-    ./build.sh kernel=GENERIC        # build the kernel (toolchain included)
-    ./build.sh kernel.gdb=GENERIC    # build a GDB-debuggable kernel
+    ./renux kernel=GENERIC        # build the kernel (toolchain included)
+    ./renux kernel.gdb=GENERIC    # build a GDB-debuggable kernel
 
 Source Roadmap:
 

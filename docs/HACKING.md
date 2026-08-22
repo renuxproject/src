@@ -8,7 +8,7 @@ without recompiling. This document is a practical guide to both.
 
 The Renux philosophy (see also `DECENTRALIZATION.md`):
 
-- one `build.sh` drives the whole build, no preinstalled toolchain needed;
+- one `./renux` drives the whole build, no preinstalled toolchain needed;
 - machine-dependent code lives under `sys/arch/`, the rest is machine-independent;
 - components (kernel, init, libc, userland) can evolve independently;
 - the system is tunable and traceable at runtime (sysctl, kld, DTrace, DDB);
@@ -24,10 +24,10 @@ No FreeBSD host or toolchain is required.
 git clone https://github.com/renuxproject/src.git /usr/src/renux
 cd /usr/src/renux
 
-./build.sh build            # world (userland) + kernel
-./build.sh kernel=GENERIC   # just the kernel
-./build.sh iso              # bootable kernel-only ISO
-./build.sh qemu             # boot it in QEMU
+./renux build            # world (userland) + kernel
+./renux kernel=GENERIC   # just the kernel
+./renux iso              # bootable kernel-only ISO
+./renux qemu             # boot it in QEMU
 ```
 
 The object tree lives under `MAKEOBJDIRPREFIX` (default `obj/`).
@@ -37,14 +37,14 @@ The object tree lives under `MAKEOBJDIRPREFIX` (default `obj/`).
 Edit something, for example `sys/kern/sched_renux.c`, then:
 
 ```sh
-./build.sh kernel=GENERIC            # rebuild the kernel
-./build.sh build worldiso            # full world + live ISO (slow)
+./renux kernel=GENERIC            # rebuild the kernel
+./renux build worldiso            # full world + live ISO (slow)
 ```
 
 To build a full live ISO with the whole userland:
 
 ```sh
-./build.sh build worldiso
+./renux build worldiso
 ```
 
 ## 3. Runtime hacking (no recompile)
@@ -107,7 +107,7 @@ sysctl debug.kdb.enter=1            # drop into DDB
 # in DDB: bt (backtrace), x/s (examine), trace, show pcpu ...
 ```
 
-With a debug kernel (`./build.sh kernel.gdb=GENERIC`) you can also attach
+With a debug kernel (`./renux kernel.gdb=GENERIC`) you can also attach
 kgdb over a serial line or via `netgdb`.
 
 ### 3.5 Userland tracing
@@ -165,13 +165,13 @@ sysctl kern.renux_hack=42
 ## 6. Testing your changes
 
 ```sh
-./build.sh kernel=GENERIC
-./build.sh iso            # kernel-only bootable image
-./build.sh qemu           # boot it
+./renux kernel=GENERIC
+./renux iso            # kernel-only bootable image
+./renux qemu           # boot it
 ```
 
 For the full live environment with everything above:
 
 ```sh
-./build.sh build worldiso
+./renux build worldiso
 ```

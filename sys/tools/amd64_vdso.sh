@@ -56,7 +56,7 @@
 set -e
 
 ${CC} -x assembler-with-cpp -DLOCORE -fPIC -nostdinc -c \
-   -o sigtramp.pico -I. -I"${S}" -include opt_global.h \
+   -o sigtramp.pico -I. -I"${S}" -I"${S}/arch" -include opt_global.h \
    "${S}"/arch/amd64/amd64/sigtramp.S
 
 # We need to make vdso as compact as possible, for it to leave space
@@ -93,7 +93,7 @@ then
 fi
 
 ${CC} -x assembler-with-cpp -DLOCORE -fPIC -nostdinc -c \
-   -o elf-vdso.so.o -I. -I"${S}" -include opt_global.h \
+   -o elf-vdso.so.o -I. -I"${S}" -I"${S}/arch" -include opt_global.h \
    -DVDSO_NAME=elf_vdso_so_1 -DVDSO_FILE=\"elf-vdso.so.1\" \
    "${S}"/tools/vdso_wrap.S
 

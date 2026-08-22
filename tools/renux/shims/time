@@ -1,0 +1,11 @@
+#!/bin/sh
+# Shim: provides time when the host system lacks it.
+# The FreeBSD build system may need this.
+if [ -x /usr/bin/time ]; then
+    exec /usr/bin/time "$@"
+elif command -v gtime >/dev/null 2>&1; then
+    exec gtime "$@"
+else
+    # No-op: just run the command without timing
+    "$@"
+fi

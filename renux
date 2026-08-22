@@ -1,44 +1,19 @@
-#!/bin/sh
-#-
-# SPDX-License-Identifier: BSD-2-Clause
-# Copyright (c) 2026 Renan Lucas Vieira Hilário.
-#
-# renux - the Renux build utility (launcher).
-#
-# The logic lives in Lua (renux.lua), run by FreeBSD's flua.  This tiny
-# launcher only finds a Lua interpreter: first flua in $PATH, then a system
-# Lua, then the bootstrap flua built by this tree.  That way it works on any
-# host and even before the bootstrap tools exist.
+#!/usr/bin/env lua
+--[[
+    SPDX-License-Identifier: BSD-2-Clause
+    Copyright (c) 2026 Renan Lucas Vieira Hilario.  All rights reserved.
 
-DIR="$(cd "$(dirname "$0")" && pwd)"
-LUA=
+    renux - the Renux build utility.
 
-for c in flua lua5.4 lua luajit; do
-	if command -v "$c" >/dev/null 2>&1; then
-		LUA="$c"
-		break
-	fi
-done
+    A clean, elegant driver for building the Renux operating system.  It
+    delegates the heavy lifting (world, kernel, installworld) to make.py /
+    bmake, and stages bootable live/installer media itself.
 
-# flua lives in /usr/libexec on a FreeBSD base system (not always in PATH).
-if [ -z "$LUA" ] && [ -x /usr/libexec/flua ]; then
-	LUA=/usr/libexec/flua
-fi
+    Usage: ./renux [options] operation [operation...]
+]]
 
-if [ -z "$LUA" ]; then
-	# Bootstrap flua built by this tree (cross-build host or native build).
-	LUA="$(find "$DIR/obj" -type f -name flua \
-	    -path '*/legacy/*' 2>/dev/null | head -n1)"
-	[ -z "$LUA" ] && LUA="$(find "$DIR/obj" -type f -name flua 2>/dev/null | head -n1)"
-fi
+-- Point the Lua module loader at tools/renux/ so require("renux.foo") works.
+local script_dir = arg[0]:match("^(.+)/[^/]+$") or "."
+package.path = script_dir .. "/tools/?.lua;" .. package.path
 
-if [ -z "$LUA" ]; then
-	cat >&2 <<EOF
-renux: no Lua interpreter found (flua, lua5.4, lua or luajit).
-
-Install one (e.g. apt install lua5.4) or build the bootstrap tools.
-EOF
-	exit 1
-fi
-
-exec "$LUA" "$DIR/renux.lua" "$@"
+require("renux.main")(arg)

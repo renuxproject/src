@@ -44,8 +44,8 @@ s|sys/riscv/|sys/arch/riscv/|g
 s|sys/powerpc/|sys/arch/powerpc/|g
 "
 
-# Default test: build the kernel (the Renux build.sh entry point).
-DEFAULT_TEST="sh ./build.sh kernel=GENERIC"
+# Default test: build the kernel (the Renux ./renux entry point).
+DEFAULT_TEST="sh ./renux kernel=GENERIC"
 
 usage()
 {

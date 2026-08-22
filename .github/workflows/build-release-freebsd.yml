@@ -38,8 +38,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     env:
-      # Keep the build objects and ccache inside the workspace so the VM syncs
-      # them back and actions/cache can persist them between runs.
       MAKEOBJDIRPREFIX: ${{ github.workspace }}/build
       CCACHE_DIR: ${{ github.workspace }}/ccache
       MK_CCACHE_BUILD: yes
@@ -68,7 +66,7 @@ jobs:
           envs: 'MAKEOBJDIRPREFIX CCACHE_DIR MK_CCACHE_BUILD CCACHE_BIN CCACHE_BASEDIR CCACHE_MAXSIZE CCACHE_COMPRESS'
           cache-after-prepare: true
           prepare: |
-            pkg install -y python3 xorriso ccache
+            pkg install -y python3 lua54 xorriso ccache
           run: |
             if [ "${{ inputs.world-image }}" = "true" ]; then
               TARGETS="build worldiso"
@@ -77,7 +75,7 @@ jobs:
             else
               TARGETS="iso"
             fi
-            ./build.sh -j$(sysctl -n hw.ncpu) -I out $TARGETS
+            ./renux -j$(sysctl -n hw.ncpu) -I out $TARGETS
 
       - name: Save ccache
         if: always()
@@ -117,7 +115,6 @@ jobs:
           FILES=""
           for f in out/renux-installer.iso out/renux-installer.iso.xz; do
             if [ -f "$f" ]; then
-              # GitHub caps release assets at 2 GiB; skip oversized ones.
               if [ "$(stat -c %s "$f" 2>/dev/null || stat -f %z "$f")" -ge 2147483648 ]; then
                 echo "::warning::$f exceeds GitHub's 2 GiB release asset limit; skipping upload"
               else
@@ -138,7 +135,6 @@ jobs:
             printf '%s\n' "Renux is community-driven and decentralized; forks and independent efforts are welcome."
             printf '%s\n' "See DECENTRALIZATION.md. Website: https://renuxproject.github.io"
           } > release-notes.md
-          # gh release create can hit transient GitHub errors (5xx); retry.
           for attempt in 1 2 3 4 5; do
             if gh release create "${{ steps.tag.outputs.value }}" $FILES \
                 --repo "$GITHUB_REPOSITORY" \

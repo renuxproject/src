@@ -1,0 +1,11 @@
+#!/bin/sh
+# Shim: provides bc when the host system lacks it.
+# The FreeBSD build system may need this.
+if [ -x /usr/bin/bc ]; then
+    exec /usr/bin/bc "$@"
+elif command -v bc >/dev/null 2>&1; then
+    exec bc "$@"
+else
+    echo "error: bc is not installed; install it (e.g. pacman -S bc)" >&2
+    exit 1
+fi
