@@ -43,7 +43,6 @@ end
 
 local REQUIRED_TOOLS = {
     { cmd = "make",     pkg_linux = "make",        pkg_bsd = "devel/gmake",  note = "GNU make" },
-    { cmd = "python3",  pkg_linux = "python",       pkg_bsd = "lang/python3", note = "build driver" },
     { cmd = "git",      pkg_linux = "git",          pkg_bsd = "devel/git",    note = "source fetch" },
     { cmd = "patch",    pkg_linux = "patch",        pkg_bsd = "sysutils/patch", note = "patching" },
     { cmd = "bmake",    pkg_linux = "bmake",        pkg_bsd = "devel/bmake",  note = "build system", alt = "make" },
@@ -208,7 +207,7 @@ local function run(check_iso)
 
         local has_critical = false
         for _, m in ipairs(missing) do
-            if m.cmd == "make" or m.cmd == "python3" or m.cmd == "git" or m.cmd == "patch" then
+            if m.cmd == "make" or m.cmd == "git" or m.cmd == "patch" then
                 has_critical = true
             end
         end

@@ -29,7 +29,6 @@ local cfg = {
     espmb           = 128,
     update          = false,
     kernel_only     = false,
-    make_py         = root .. "/tools/build/make.py",
     worlddir        = "",
     extra_args      = "",
 }
