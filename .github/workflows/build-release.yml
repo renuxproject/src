@@ -58,8 +58,8 @@ jobs:
       - name: Create build environment
         run: |
           BREW_PREFIX="$(brew --prefix)"
-          echo "PATH=${BREW_PREFIX}/opt/llvm/bin:${BREW_PREFIX}/bin:/usr/bin:/bin:/usr/sbin:/sbin" >> "$GITHUB_ENV"
-          mkdir -p ../build
+          echo "PATH=${BREW_PREFIX}/opt/llvm/bin:${BREW_PREFIX}/opt/coreutils/libexec/gnubin:${BREW_PREFIX}/bin:${BREW_PREFIX}/sbin:/usr/bin:/bin:/usr/sbin:/sbin" >> "$GITHUB_ENV"
+          mkdir -p ../build "${PWD%/*}/ccache"
           echo "MAKEOBJDIRPREFIX=${PWD%/*}/build" >> "$GITHUB_ENV"
           echo "NPROC=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 2)" >> "$GITHUB_ENV"
           echo "CC=clang"      >> "$GITHUB_ENV"
@@ -96,7 +96,7 @@ jobs:
           fi
           for attempt in 1 2 3 4; do
             echo "::group::build attempt ${attempt}"
-            if sudo -E ./renux -j "$NPROC" -I release $TARGETS; then
+            if ./renux -j "$NPROC" -I release $TARGETS; then
               echo "::endgroup::"
               exit 0
             fi

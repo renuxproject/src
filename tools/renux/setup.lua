@@ -158,7 +158,7 @@ local REQUIRED_TOOLS = {
 }
 
 local ISO_TOOLS = {
-    { cmd = "mkisofs",  note = "ISO creation",
+    { cmd = "mkisofs",  note = "ISO creation", alt = "xorriso",
       pkgs = { apt = "genisoimage", pacman = "cdrtools", dnf = "genisoimage",
                zypper = "genisoimage", apk = "genisoimage", xbps = "cdrtools",
                brew = "cdrtools", pkg = "cdrtools", pkgin = "cdrtools",

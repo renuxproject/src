@@ -23,7 +23,13 @@ local function make_world_esp()
     else
         if not (H.have("mkfs.fat") and H.have("mcopy")) then H.bomb("mkfs.fat and mcopy are required") end
         H.run("rm -f '" .. img .. "'")
-        H.run("truncate -s " .. (cfg.espmb * 1024 * 1024) .. " '" .. img .. "'")
+        local mb = cfg.espmb * 1024 * 1024
+        if H.have("truncate") then
+            H.run("truncate -s " .. mb .. " '" .. img .. "'")
+        else
+            H.status("truncate not found; falling back to dd")
+            H.run("dd if=/dev/zero of='" .. img .. "' bs=1048576 count=" .. cfg.espmb)
+        end
         H.run("mkfs.fat -F32 -n RENUX '" .. img .. "' >/dev/null")
         H.run("mcopy -i '" .. img .. "' -s '" .. stage .. "/*' ::/")
     end
