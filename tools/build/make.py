@@ -84,8 +84,24 @@ def run(cmd, **kwargs):
     subprocess.check_call(cmd, **kwargs)
 
 
-# Always bootstraps in order to control bmake's config to ensure compatibility
+def bmake_make_version(bmake_binary):
+    """Return a bmake binary's MAKE_VERSION as an int, or None."""
+    try:
+        out = subprocess.run(
+            [str(bmake_binary), "-r", "-f", "/dev/null", "-V",
+             "MAKE_VERSION"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        ).stdout.strip()
+        return int(out)
+    except (OSError, ValueError):
+        return None
+
+
+# Reuses a new-enough system bmake when available; otherwise bootstraps
+# the in-tree copy in order to control its configure options.
 def bootstrap_bmake(source_root, objdir_prefix):
+    global new_env_vars
     bmake_source_dir = source_root / "contrib/bmake"
     bmake_build_dir = objdir_prefix / "bmake-build"
     bmake_install_dir = objdir_prefix / "bmake-install"
@@ -100,16 +116,28 @@ def bootstrap_bmake(source_root, objdir_prefix):
     except ValueError:
         sys.exit("Invalid source bmake version '" + bmake_source_version + "'")
 
+    # Reuse a system-installed bmake when possible to skip the bootstrap
+    # build entirely (e.g. Homebrew bmake on macOS).  MAKESYSPATH is set
+    # below so it picks up the in-tree mk files.
+    if not parsed_args.bootstrap_bmake:
+        system_bmake = shutil.which("bmake")
+        if system_bmake:
+            system_version = bmake_make_version(system_bmake)
+            if system_version and system_version >= bmake_source_version:
+                print("Using system bmake (%d) from %s" %
+                      (system_version, system_bmake))
+                new_env_vars["MAKESYSPATH"] = str(source_root / "share/mk")
+                return Path(system_bmake)
+            print("System bmake too old or unusable (%s < %s), "
+                  "bootstrapping" % (system_version, bmake_source_version))
+
     bmake_installed_version = 0
     if bmake_binary.exists():
-        bmake_installed_version = subprocess.run([
-            bmake_binary, "-r", "-f", "/dev/null", "-V", "MAKE_VERSION"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.strip()
-        try:
-            bmake_installed_version = int(bmake_installed_version.strip())
-        except ValueError:
-            print("Invalid installed bmake version '" +
-                  bmake_installed_version + "', treating as not present")
+        installed_version = bmake_make_version(bmake_binary)
+        if installed_version is None:
+            print("Invalid installed bmake version, treating as not present")
+        else:
+            bmake_installed_version = installed_version
 
     configure_args = [
         "--with-default-sys-path=.../share/mk:" +
@@ -141,7 +169,6 @@ def bootstrap_bmake(source_root, objdir_prefix):
     os.makedirs(str(bmake_build_dir))
 
     env = os.environ.copy()
-    global new_env_vars
     env.update(new_env_vars)
 
     run(["sh", bmake_source_dir / "boot-strap"] + configure_args,
@@ -268,6 +295,9 @@ if __name__ == "__main__":
     parser.add_argument("--no-clean", action="store_false", dest="clean",
                         help="Do a clean rebuild instead of building with "
                              "-DWITHOUT_CLEAN")
+    parser.add_argument("--bootstrap-bmake", action="store_true",
+                        help="Build bmake from source even if a suitable "
+                             "system bmake exists")
     try:
         import argcomplete  # bash completion:
 
