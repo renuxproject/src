@@ -41,29 +41,143 @@ local function detect_linker()
     return nil, nil
 end
 
+----------------------------------------------------------------------------
+-- Package manager detection
+----------------------------------------------------------------------------
+
+-- Manager short names: apt pacman dnf zypper apk xbps emerge brew
+--                      pkg pkgin pkg_add
+local function detect_linux_distro()
+    local f = io.open("/etc/os-release", "r")
+    if f then
+        local body = f:read("*a"); f:close()
+        local id = body:match('^ID="?([%w%-]+)"?')
+        return id or ""
+    end
+    return ""
+end
+
+local function detect_manager()
+    if host_os == "Darwin" then return H.have("brew") and "brew" or nil end
+    if host_os == "FreeBSD" or host_os == "DragonFly" then
+        return H.have("pkg") and "pkg" or nil
+    end
+    if host_os == "NetBSD" then return H.have("pkgin") and "pkgin" or nil end
+    if host_os == "OpenBSD" then return "pkg_add" end
+
+    local distro = detect_linux_distro()
+    local prefer = {
+        ubuntu = "apt", debian = "apt", linuxmint = "apt", pop = "apt",
+        raspbian = "apt", kali = "apt",
+        arch = "pacman", manjaro = "pacman", endeavouros = "pacman",
+        garuda = "pacman", cachyos = "pacman",
+        fedora = "dnf", rhel = "dnf", centos = "dnf", rocky = "dnf",
+        almalinux = "dnf", amzn = "dnf",
+        opensuse = "zypper", ["opensuse-tumbleweed"] = "zypper",
+        ["opensuse-leap"] = "zypper", suse = "zypper",
+        alpine = "apk", void = "xbps", gentoo = "emerge",
+    }
+    if prefer[distro] then
+        local bins = { apt = "apt-get", dnf = "dnf", zypper = "zypper" }
+        local bin = bins[prefer[distro]] or prefer[distro]
+        if H.have(bin) then return prefer[distro] end
+    end
+    -- Fall back to whatever is installed.
+    local order = { "apt-get", "pacman", "dnf", "yum", "zypper", "apk",
+                    "xbps-install", "emerge" }
+    local names = { apt = "apt", pacman = "pacman", dnf = "dnf",
+                    yum = "dnf", zypper = "zypper", apk = "apk",
+                    ["xbps-install"] = "xbps", emerge = "emerge" }
+    for _, bin in ipairs(order) do
+        if H.have(bin) then return names[bin] end
+    end
+    return nil
+end
+
+local MANAGER_PKG = nil  -- (reserved for future per-manager aliases)
+
+----------------------------------------------------------------------------
+-- Tool tables: pkgs[manager] = package name (nil = provided by base OS)
+----------------------------------------------------------------------------
+
 local REQUIRED_TOOLS = {
-    { cmd = "make",     pkg_linux = "make",        pkg_bsd = "devel/gmake",  note = "GNU make" },
-    { cmd = "git",      pkg_linux = "git",          pkg_bsd = "devel/git",    note = "source fetch" },
-    { cmd = "patch",    pkg_linux = "patch",        pkg_bsd = "sysutils/patch", note = "patching" },
-    { cmd = "bmake",    pkg_linux = "bmake",        pkg_bsd = "devel/bmake",  note = "build system", alt = "make" },
-    { cmd = "mktemp",   pkg_linux = "coreutils",    pkg_bsd = "",             note = "temp files" },
-    { cmd = "install",  pkg_linux = "coreutils",    pkg_bsd = "BSD tool",     note = "file install" },
-    { cmd = "stat",     pkg_linux = "coreutils",    pkg_bsd = "BSD tool",     note = "file stat" },
-    { cmd = "readlink", pkg_linux = "coreutils",    pkg_bsd = "BSD tool",     note = "symlink read" },
-    { cmd = "realpath", pkg_linux = "coreutils",    pkg_bsd = "",             note = "path resolve", optional = true },
-    { cmd = "find",     pkg_linux = "findutils",    pkg_bsd = "BSD tool",     note = "file search" },
-    { cmd = "tar",      pkg_linux = "tar",          pkg_bsd = "archivers/tar", note = "archives" },
-    { cmd = "xz",       pkg_linux = "xz",           pkg_bsd = "archivers/xz", note = "compression", optional = true },
-    { cmd = "grep",     pkg_linux = "grep",         pkg_bsd = "BSD tool",     note = "text search" },
-    { cmd = "sed",      pkg_linux = "sed",          pkg_bsd = "BSD tool",     note = "text edit" },
-    { cmd = "awk",      pkg_linux = "gawk",         pkg_bsd = "converters/gawk", note = "text processing" },
+    { cmd = "make",     note = "GNU make",
+      pkgs = { apt = "make", pacman = "make", dnf = "make", zypper = "make",
+               apk = "make", xbps = "make", brew = "make", pkg = "gmake",
+               pkgin = "gmake", pkg_add = "gmake" } },
+    { cmd = "git",      note = "source fetch",
+      pkgs = { apt = "git", pacman = "git", dnf = "git", zypper = "git",
+               apk = "git", xbps = "git", brew = "git", pkg = "git",
+               pkgin = "git-base", pkg_add = "git" } },
+    { cmd = "patch",    note = "patching",
+      pkgs = { apt = "patch", pacman = "patch", dnf = "patch",
+               zypper = "patch", apk = "patch", xbps = "patch",
+               brew = "patch", pkg = "patch", pkg_add = "patch" } },
+    { cmd = "bmake",    note = "build system (auto-bootstrapped if missing)",
+      optional = true,
+      pkgs = { apt = "bmake", pacman = "bmake", dnf = "bmake",
+               zypper = "bmake", apk = "bmake", xbps = "bmake",
+               brew = "bmake", pkg = "bmake", pkgin = "bmake",
+               pkg_add = "bmake" } },
+    { cmd = "mktemp",   note = "temp files",
+      pkgs = { apt = "coreutils", pacman = "coreutils", dnf = "coreutils",
+               zypper = "coreutils", apk = "coreutils", xbps = "coreutils" } },
+    { cmd = "install",  note = "file install",
+      pkgs = { apt = "coreutils", pacman = "coreutils", dnf = "coreutils",
+               zypper = "coreutils", apk = "coreutils", xbps = "coreutils" } },
+    { cmd = "stat",     note = "file stat",
+      pkgs = { apt = "coreutils", pacman = "coreutils", dnf = "coreutils",
+               zypper = "coreutils", apk = "coreutils", xbps = "coreutils" } },
+    { cmd = "readlink", note = "symlink read",
+      pkgs = { apt = "coreutils", pacman = "coreutils", dnf = "coreutils",
+               zypper = "coreutils", apk = "coreutils", xbps = "coreutils" } },
+    { cmd = "realpath", note = "path resolve", optional = true,
+      pkgs = { apt = "coreutils", pacman = "coreutils", dnf = "coreutils",
+               zypper = "coreutils", apk = "coreutils", xbps = "coreutils" } },
+    { cmd = "find",     note = "file search",
+      pkgs = { apt = "findutils", pacman = "findutils", dnf = "findutils",
+               zypper = "findutils", apk = "findutils",
+               xbps = "findutils" } },
+    { cmd = "tar",      note = "archives",
+      pkgs = { apt = "tar", pacman = "tar", dnf = "tar", zypper = "tar",
+               apk = "tar", xbps = "tar" } },
+    { cmd = "xz",       note = "compression", optional = true,
+      pkgs = { apt = "xz-utils", pacman = "xz", dnf = "xz", zypper = "xz",
+               apk = "xz", xbps = "xz", brew = "xz", pkg = "xz",
+               pkgin = "xz", pkg_add = "xz" } },
+    { cmd = "grep",     note = "text search",
+      pkgs = { apt = "grep", pacman = "grep", dnf = "grep", zypper = "grep",
+               apk = "grep", xbps = "grep" } },
+    { cmd = "sed",      note = "text edit",
+      pkgs = { apt = "sed", pacman = "sed", dnf = "sed", zypper = "sed",
+               apk = "sed", xbps = "sed" } },
+    { cmd = "awk",      note = "text processing",
+      pkgs = { apt = "gawk", pacman = "gawk", dnf = "gawk", zypper = "gawk",
+               apk = "gawk", xbps = "gawk", brew = "gawk",
+               pkg = "gawk", pkgin = "gawk" } },
 }
 
 local ISO_TOOLS = {
-    { cmd = "mkisofs",  pkg_linux = "genisoimage",  pkg_bsd = "sysutils/cdrtools", note = "ISO creation" },
-    { cmd = "xorriso",  pkg_linux = "xorriso",      pkg_bsd = "sysutils/xorriso",  note = "ISO creation (alt)" },
-    { cmd = "mkfs.fat", pkg_linux = "dosfstools",   pkg_bsd = "",                   note = "FAT ESP", optional = true },
-    { cmd = "mcopy",    pkg_linux = "mtools",        pkg_bsd = "",                   note = "FAT copy", optional = true },
+    { cmd = "mkisofs",  note = "ISO creation",
+      pkgs = { apt = "genisoimage", pacman = "cdrtools", dnf = "genisoimage",
+               zypper = "genisoimage", apk = "genisoimage", xbps = "cdrtools",
+               brew = "cdrtools", pkg = "cdrtools", pkgin = "cdrtools",
+               pkg_add = "cdrtools" } },
+    { cmd = "xorriso",  note = "ISO creation (alt)", optional = true,
+      pkgs = { apt = "xorriso", pacman = "xorriso", dnf = "xorriso",
+               zypper = "xorriso", apk = "xorriso", xbps = "xorriso",
+               brew = "xorriso", pkg = "xorriso", pkgin = "xorriso",
+               pkg_add = "xorriso" } },
+    { cmd = "mkfs.fat", note = "FAT ESP", optional = true,
+      pkgs = { apt = "dosfstools", pacman = "dosfstools", dnf = "dosfstools",
+               zypper = "dosfstools", apk = "dosfstools",
+               xbps = "dosfstools", brew = "dosfstools", pkg = "dosfstools",
+               pkgin = "dosfstools", pkg_add = "dosfstools" } },
+    { cmd = "mcopy",    note = "FAT copy", optional = true,
+      pkgs = { apt = "mtools", pacman = "mtools", dnf = "mtools",
+               zypper = "mtools", apk = "mtools", xbps = "mtools",
+               brew = "mtools", pkg = "mtools", pkgin = "mtools",
+               pkg_add = "mtools" } },
 }
 
 local function check_tools(list)
@@ -73,19 +187,82 @@ local function check_tools(list)
         if not found and tool.alt then
             found = H.have(tool.alt)
         end
-        if not found and not tool.optional then
-            local pkg
-            if host_os == "Linux" then
-                pkg = tool.pkg_linux
-            elseif host_os == "FreeBSD" or host_os == "NetBSD" or host_os == "OpenBSD" or host_os == "DragonFly" then
-                pkg = tool.pkg_bsd
-            else
-                pkg = tool.pkg_linux
-            end
-            missing[#missing + 1] = { cmd = tool.cmd, pkg = pkg, note = tool.note }
+        if not found then
+            missing[#missing + 1] = { cmd = tool.cmd, note = tool.note,
+                                      pkgs = tool.pkgs,
+                                      optional = tool.optional }
         end
     end
     return missing
+end
+
+local function sudo_prefix()
+    local h = io.popen("id -u 2>/dev/null")
+    local uid = h and h:read("*l") or "1"
+    if h then h:close() end
+    if uid == "0" then return "" end
+    if H.have("sudo") then return "sudo " end
+    if H.have("doas") then return "doas " end
+    return nil  -- no privilege escalation available
+end
+
+-- Build the install command line for one manager.
+local function install_cmd(manager, pkg)
+    local rootless = { brew = true, pkg = true, pkgin = true }
+    local pre = ""
+    if not rootless[manager] then
+        pre = sudo_prefix()
+        if pre == nil then return nil end
+    end
+
+    if manager == "apt" then
+        return pre .. "apt-get update -qq && " .. pre ..
+               "apt-get install -y --no-install-recommends " .. pkg
+    elseif manager == "pacman" then
+        return pre .. "pacman -S --needed --noconfirm " .. pkg
+    elseif manager == "dnf" then
+        return pre .. "dnf install -y " .. pkg
+    elseif manager == "zypper" then
+        return pre .. "zypper --non-interactive install " .. pkg
+    elseif manager == "apk" then
+        return pre .. "apk add " .. pkg
+    elseif manager == "xbps" then
+        return pre .. "xbps-install -Sy " .. pkg
+    elseif manager == "emerge" then
+        return pre .. "emerge -1 " .. pkg
+    elseif manager == "brew" then
+        return "brew install " .. pkg .. " || true"
+    elseif manager == "pkg" then
+        return pre .. "pkg install -y " .. pkg
+    elseif manager == "pkgin" then
+        return pre .. "pkgin -y install " .. pkg
+    elseif manager == "pkg_add" then
+        return pre .. "pkg_add -I " .. pkg
+    end
+    return nil
+end
+
+-- Try to install every missing tool with the detected package manager.
+local function install_missing(missing, manager)
+    if not manager or #missing == 0 then return false end
+    local batch, seen = {}, {}
+    for _, m in ipairs(missing) do
+        local pkg = m.pkgs and m.pkgs[manager]
+        if pkg and pkg ~= "" and not seen[pkg] then
+            seen[pkg] = true
+            batch[#batch + 1] = pkg
+        end
+    end
+    if #batch == 0 then return false end
+
+    H.status("Installing dependencies via " .. c.bold .. c.white ..
+             manager .. c.reset .. ": " .. table.concat(batch, " "))
+    local cmd = install_cmd(manager, table.concat(batch, " "))
+    if not cmd then
+        H.warn("cannot build an install command for " .. tostring(manager))
+        return false
+    end
+    return H.run(cmd)
 end
 
 local function provision_shims()
@@ -192,27 +369,44 @@ local function run(check_iso)
     end
 
     if #missing > 0 then
-        H.warn("missing required tools:")
-        print()
+        local manager = detect_manager()
+        H.warn("missing tools:")
         for _, m in ipairs(missing) do
-            local install_hint = ""
-            if h_os == "Linux" and m.pkg ~= "" then
-                install_hint = c.dim .. " (install: " .. m.pkg .. ")" .. c.reset
-            elseif h_os == "FreeBSD" and m.pkg ~= "" then
-                install_hint = c.dim .. " (install: pkg install " .. m.pkg .. ")" .. c.reset
+            local hint = ""
+            if manager and m.pkgs and m.pkgs[manager] then
+                hint = c.dim .. " (" .. manager .. ": " .. m.pkgs[manager] .. ")" .. c.reset
             end
-            print("  " .. c.red .. m.cmd .. c.reset .. " - " .. m.note .. install_hint)
+            print("  " .. c.red .. m.cmd .. c.reset .. " - " .. m.note .. hint)
         end
         print()
 
-        local has_critical = false
-        for _, m in ipairs(missing) do
-            if m.cmd == "make" or m.cmd == "git" or m.cmd == "patch" then
-                has_critical = true
+        if cfg.no_deps then
+            H.status("skipping dependency install (--no-deps)")
+        else
+            if not manager then
+                H.warn("no supported package manager found; install the tools above manually")
+            elseif not install_missing(missing, manager) then
+                H.warn("could not install everything automatically; install the missing tools above manually")
             end
         end
-        if has_critical then
-            H.bomb("install the missing tools above before building")
+
+        -- Re-check after any install attempt.
+        local still = check_tools(REQUIRED_TOOLS)
+        if check_iso then
+            local iso_missing = check_tools(ISO_TOOLS)
+            for _, m in ipairs(iso_missing) do still[#still + 1] = m end
+        end
+        local fatal = {}
+        for _, m in ipairs(still) do
+            if not m.optional then fatal[#fatal + 1] = m.cmd end
+        end
+        if #fatal > 0 then
+            if cfg.runcmd == "echo" then
+                H.status("dry-run: " .. table.concat(fatal, ", ") ..
+                         " would be installed on the real build")
+            else
+                H.bomb("required tools still missing: " .. table.concat(fatal, ", "))
+            end
         end
     end
 
@@ -246,6 +440,9 @@ return {
     detect_cc       = detect_cc,
     detect_linker   = detect_linker,
     check_tools     = check_tools,
+    detect_manager  = detect_manager,
+    install_missing = install_missing,
+    install_cmd     = install_cmd,
     provision_shims = provision_shims,
     create_arch_symlinks    = create_arch_symlinks,
     create_kernel_symlinks  = create_kernel_symlinks,

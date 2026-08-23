@@ -60,6 +60,7 @@ local function usage()
         { "-M DIR",         "object root (MAKEOBJDIRPREFIX)" },
         { "-n, --dry-run",  "dry run (show commands only)" },
         { "-u",             "incremental build (no clean)" },
+        { "--no-deps",      "skip automatic dependency install" },
         { "--",             "pass remaining flags to make.py" },
         { "-h, --help",     "show this help" },
         { "-v, --version",  "show version" },
@@ -140,6 +141,7 @@ return function(main_arg)
         elseif a == "-K" then cfg.kernel_only = true; pos = pos + 1
         elseif a == "-n" or a == "--dry-run" then cfg.runcmd = "echo"; pos = pos + 1
         elseif a == "-u" then cfg.update = true; pos = pos + 1
+        elseif a == "--no-deps" then cfg.no_deps = true; pos = pos + 1
         elseif a == "-v" or a == "--version" then
             print(c.bold .. "renux" .. c.reset .. " " .. c.cyan .. cfg.version .. c.reset)
             os.exit(0)

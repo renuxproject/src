@@ -29,6 +29,7 @@ local cfg = {
     espmb           = 128,
     update          = false,
     kernel_only     = false,
+    no_deps         = false,
     worlddir        = "",
     extra_args      = "",
 }
