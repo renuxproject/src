@@ -1,6 +1,8 @@
-name: Build Renux ISO (Linux cross-build, manual)
+name: Build Renux ISO (macOS cross-build)
 
 on:
+  push:
+    tags: [ 'v*' ]
   workflow_dispatch:
     inputs:
       version:
@@ -32,43 +34,44 @@ concurrency:
 
 jobs:
   build:
-    name: Build Renux ISO (buildworld + buildkernel)
-    runs-on: ubuntu-24.04
+    name: Build Renux ISO (macOS cross-build)
+    runs-on: macos-latest
     timeout-minutes: 360
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Cache Homebrew downloads
+        uses: actions/cache@v4
+        with:
+          path: /Users/runner/Library/Caches/Homebrew
+          key: renux-brew-${{ runner.os }}-v1
+          restore-keys: |
+            renux-brew-${{ runner.os }}-
+
+      - name: Install build dependencies (Homebrew)
         run: |
-          sudo apt-get update --quiet || true
-          sudo apt-get -yq --no-install-suggests --no-install-recommends install \
-            bmake libarchive-dev clang-18 lld-18 dosfstools mtools xorriso ccache \
-            lua5.4 xz-utils libtool pkg-config make
-          sudo ln -sf "$(command -v clang-18)"     /usr/local/bin/clang
-          sudo ln -sf "$(command -v clang++-18)"   /usr/local/bin/clang++
-          sudo ln -sf "$(command -v clang-cpp-18)" /usr/local/bin/clang-cpp
-          sudo ln -sf "$(command -v ld.lld-18)"    /usr/local/bin/ld.lld
-          sudo ln -sf "$(command -v clang-18)"     /usr/bin/clang
-          sudo ln -sf "$(command -v clang++-18)"   /usr/bin/clang++
-          sudo ln -sf "$(command -v clang-cpp-18)" /usr/bin/clang-cpp
-          sudo ln -sf "$(command -v ld.lld-18)"    /usr/bin/ld.lld
-          clang --version | head -1
+          brew update --quiet || true
+          brew install --quiet bmake libarchive llvm lld lua xorriso \
+            dosfstools mtools ccache xz coreutils || true
 
       - name: Create build environment
         run: |
+          BREW_PREFIX="$(brew --prefix)"
+          echo "PATH=${BREW_PREFIX}/opt/llvm/bin:${BREW_PREFIX}/bin:/usr/bin:/bin:/usr/sbin:/sbin" >> "$GITHUB_ENV"
           mkdir -p ../build
           echo "MAKEOBJDIRPREFIX=${PWD%/*}/build" >> "$GITHUB_ENV"
-          echo "NPROC=$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 2)" >> "$GITHUB_ENV"
+          echo "NPROC=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 2)" >> "$GITHUB_ENV"
           echo "CC=clang"      >> "$GITHUB_ENV"
           echo "CXX=clang++"   >> "$GITHUB_ENV"
           echo "CPP=clang-cpp" >> "$GITHUB_ENV"
           echo "MK_CCACHE_BUILD=yes" >> "$GITHUB_ENV"
-          echo "CCACHE_BIN=/usr/bin/ccache" >> "$GITHUB_ENV"
+          echo "CCACHE_BIN=${BREW_PREFIX}/bin/ccache" >> "$GITHUB_ENV"
           echo "CCACHE_DIR=${PWD%/*}/ccache" >> "$GITHUB_ENV"
           echo "CCACHE_BASEDIR=${PWD}" >> "$GITHUB_ENV"
           echo "CCACHE_MAXSIZE=2G" >> "$GITHUB_ENV"
           echo "CCACHE_COMPRESS=1" >> "$GITHUB_ENV"
+          clang --version | head -1
 
       - name: Restore ccache
         uses: actions/cache/restore@v4
@@ -141,7 +144,7 @@ jobs:
           FILES=""
           for f in release/renux-installer.iso release/renux-installer.iso.xz; do
             if [ -f "$f" ]; then
-              if [ "$(stat -c %s "$f" 2>/dev/null || stat -f %z "$f")" -ge 2147483648 ]; then
+              if [ "$(stat -f %z "$f" 2>/dev/null || stat -c %s "$f")" -ge 2147483648 ]; then
                 echo "::warning::$f exceeds GitHub's 2 GiB release asset limit; skipping upload"
               else
                 FILES="$FILES $f"

@@ -1,0 +1,71 @@
+name: Build Renux kernel
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kernel:
+    name: GENERIC amd64 (macOS cross-build)
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Homebrew downloads
+        uses: actions/cache@v4
+        with:
+          path: /Users/runner/Library/Caches/Homebrew
+          key: renux-brew-${{ runner.os }}-v1
+          restore-keys: |
+            renux-brew-${{ runner.os }}-
+
+      - name: Install build dependencies (Homebrew)
+        run: |
+          brew update --quiet || true
+          brew install --quiet bmake libarchive llvm lld lua ccache || true
+
+      - name: Create build environment
+        run: |
+          BREW_PREFIX="$(brew --prefix)"
+          echo "PATH=${BREW_PREFIX}/opt/llvm/bin:${BREW_PREFIX}/bin:/usr/bin:/bin:/usr/sbin:/sbin" >> "$GITHUB_ENV"
+          mkdir -p ../build
+          echo "MAKEOBJDIRPREFIX=${PWD%/*}/build" >> "$GITHUB_ENV"
+          echo "NPROC=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 2)" >> "$GITHUB_ENV"
+          echo "CC=clang"      >> "$GITHUB_ENV"
+          echo "CXX=clang++"   >> "$GITHUB_ENV"
+          echo "CPP=clang-cpp" >> "$GITHUB_ENV"
+          echo "MK_CCACHE_BUILD=yes" >> "$GITHUB_ENV"
+          echo "CCACHE_BIN=${BREW_PREFIX}/bin/ccache" >> "$GITHUB_ENV"
+          echo "CCACHE_DIR=${PWD%/*}/ccache" >> "$GITHUB_ENV"
+          echo "CCACHE_BASEDIR=${PWD}" >> "$GITHUB_ENV"
+          echo "CCACHE_MAXSIZE=1G" >> "$GITHUB_ENV"
+
+      - name: Restore ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: renux-kccache-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            renux-kccache-${{ runner.os }}-
+
+      - name: Build the GENERIC kernel
+        run: ./renux -j"$NPROC" kernel=GENERIC
+
+      - name: Save ccache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: renux-kccache-${{ runner.os }}-${{ github.sha }}-${{ github.run_id }}
+
+      - name: List build results
+        if: always()
+        run: ls -lh "${MAKEOBJDIRPREFIX:-../build}" 2>/dev/null || true
