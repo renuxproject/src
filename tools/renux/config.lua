@@ -32,6 +32,7 @@ local cfg = {
     no_deps         = false,
     worlddir        = "",
     extra_args      = "",
+    verbose         = false,
 }
 
 function cfg.abs_init(abs_path)

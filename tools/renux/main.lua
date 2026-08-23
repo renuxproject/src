@@ -60,6 +60,7 @@ local function usage()
         { "-M DIR",         "object root (MAKEOBJDIRPREFIX)" },
         { "-n, --dry-run",  "dry run (show commands only)" },
         { "-u",             "incremental build (no clean)" },
+        { "--verbose",      "show full build commands (default: quiet, ===> dir lines)" },
         { "--no-deps",      "skip automatic dependency install" },
         { "--",             "pass remaining flags to make.py" },
         { "-h, --help",     "show this help" },
@@ -139,6 +140,7 @@ return function(main_arg)
             end
             pos = pos + 2
         elseif a == "-K" then cfg.kernel_only = true; pos = pos + 1
+        elseif a == "--verbose" then cfg.verbose = true; pos = pos + 1
         elseif a == "-n" or a == "--dry-run" then cfg.runcmd = "echo"; pos = pos + 1
         elseif a == "-u" then cfg.update = true; pos = pos + 1
         elseif a == "--no-deps" then cfg.no_deps = true; pos = pos + 1
