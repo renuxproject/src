@@ -2,7 +2,7 @@ name: Mirror to git.disroot.org
 
 # Keeps the self-hosted Forgejo copy in sync with the GitHub development
 # repository, so no single forge is a single point of failure (see
-# DECENTRALIZATION.md).
+# docs/DECENTRALIZATION.md).
 
 on:
   push:

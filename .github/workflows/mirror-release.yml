@@ -2,7 +2,7 @@ name: Mirror Releases to git.disroot.org
 
 # Mirrors GitHub Releases (including the attached ISO binaries) to the
 # self-hosted Forgejo so the release artifacts are not a single point of
-# failure either (see DECENTRALIZATION.md).
+# failure either (see docs/DECENTRALIZATION.md).
 
 on:
   release:

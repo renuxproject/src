@@ -6,7 +6,7 @@ Renux is designed to be hacked. It is meant to be understood, modified and
 rebuilt by whoever uses it - and, once running, tuned and probed at runtime
 without recompiling. This document is a practical guide to both.
 
-The Renux philosophy (see also `DECENTRALIZATION.md`):
+The Renux philosophy (see also `docs/DECENTRALIZATION.md`):
 
 - one `./renux` drives the whole build, no preinstalled toolchain needed;
 - machine-dependent code lives under `sys/arch/`, the rest is machine-independent;
