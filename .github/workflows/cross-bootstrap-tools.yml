@@ -22,7 +22,7 @@ jobs:
             target: amd64
             os: macos-latest
             compiler: clang
-            pkgs: bmake libarchive
+            pkgs: bmake libarchive llvm lld
     steps:
       - uses: actions/checkout@v4
 
