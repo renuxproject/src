@@ -635,7 +635,6 @@ DIRDEPS+= \
 	usr.sbin/ntp/sntp \
 	usr.sbin/pciconf \
 	usr.sbin/periodic \
-	usr.sbin/pkg \
 	usr.sbin/pmcannotate \
 	usr.sbin/pmccontrol \
 	usr.sbin/pmcstat \

@@ -6921,10 +6921,8 @@ OLD_FILES+=usr/share/snmp/defs/pf_tree.def
 OLD_FILES+=usr/share/snmp/mibs/BEGEMOT-PF-MIB.txt
 .endif
 
-.if ${MK_PKGBOOTSTRAP} == no
 OLD_FILES+=usr/sbin/pkg
 OLD_FILES+=usr/share/man/man7/pkg.7.gz
-.endif
 
 .if ${MK_PMC} == no
 OLD_FILES+=usr/bin/pmcstudy

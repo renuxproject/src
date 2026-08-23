@@ -22,7 +22,7 @@ local function build_pkg()
 
     if not os.execute("[ -d '" .. pkg_src .. "/.git' ]") then
         if not H.sh("git clone --depth 1 https://github.com/renuxproject/pkg.git '" .. pkg_src .. "' 2>&1") then
-            H.status("warning: could not clone the Renux pkg fork; keeping the FreeBSD pkg bootstrap")
+            H.status("warning: could not clone the Renux pkg fork; the image will not include pkg")
             return
         end
     end
@@ -39,7 +39,7 @@ local function build_pkg()
     if ok then ok = H.sh("cd '" .. pkg_src .. "' && make DESTDIR='" .. sysroot .. "' install 2>&1") end
 
     if not ok then
-        H.status("warning: the Renux pkg fork failed to build; keeping the FreeBSD pkg bootstrap")
+        H.status("warning: the Renux pkg fork failed to build; the image will not include pkg")
         return
     end
 

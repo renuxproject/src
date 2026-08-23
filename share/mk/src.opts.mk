@@ -158,7 +158,6 @@ __DEFAULT_YES_OPTIONS = \
     OPENSSL \
     PAM \
     PF \
-    PKGBOOTSTRAP \
     PMC \
     PPP \
     QUOTAS \
@@ -456,9 +455,8 @@ MK_OPENSSL_KTLS:=	no
 MK_KERBEROS:=	no
 MK_KERBEROS_SUPPORT:=	no
 MK_MITKRB5:=	no
-MK_LDNS:=	no
-MK_PKGBOOTSTRAP:=	no
-MK_LOADER_ZFS:=	no
+	MK_LDNS:=	no
+	MK_LOADER_ZFS:=	no
 MK_ZFS:=	no
 .endif
 
