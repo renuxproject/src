@@ -47,6 +47,18 @@ To build a full live ISO with the whole userland:
 ./renux build worldiso
 ```
 
+### 2.1 Experimental: compiling the kernel with zig cc
+
+The kernel can be built with `zig cc` instead of clang through a wrapper
+that translates the FreeBSD-style `-target` into a zig-compatible one:
+
+```sh
+./renux kernel=GENERIC -- XCC="$PWD/tools/zig/x86_64-freebsd-zig-cc"
+```
+
+This is experimental; `zig cc` rejects some clang flags, so expect to
+iterate as the kernel evolves.
+
 ## 3. Runtime hacking (no recompile)
 
 Once Renux is running you can inspect, tune and extend it live.

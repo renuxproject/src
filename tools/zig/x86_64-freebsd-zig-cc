@@ -1,0 +1,42 @@
+#!/bin/sh
+# SPDX-License-Identifier: BSD-2-Clause
+#
+# x86_64-freebsd-zig-cc - compile Renux (FreeBSD-heritage) targets with zig cc.
+#
+# zig cc validates -target against its own triple list, which does not know
+# the amd64-unknown-freebsdN.M form the build system passes.  Rewrite it to
+# the zig spelling (x86_64-freebsd) and hand everything else to zig cc.
+#
+# Usage (from the top of the tree):
+#   ./renux kernel=GENERIC -- \
+#       XCC="$PWD/tools/zig/x86_64-freebsd-zig-cc"
+#
+# Limitation: arguments containing spaces or shell metacharacters are not
+# preserved (good enough for kernel builds, not a general-purpose wrapper).
+
+set -e
+
+norm_target() {
+	printf '%s' "$1" | sed -e 's/^amd64-/x86_64-/' \
+		-e 's/-unknown//' -e 's/-freebsd.*$/-freebsd/'
+}
+
+args=
+while [ $# -gt 0 ]; do
+	a=$1
+	shift
+	case $a in
+	-target)
+		args="$args -target $(norm_target "${1:?missing -target value}")"
+		shift
+		;;
+	-target=*)
+		args="$args -target=$(norm_target "${a#-target=}")"
+		;;
+	*)
+		args="$args '$a'"
+		;;
+	esac
+done
+
+eval exec zig cc $args

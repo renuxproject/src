@@ -1,0 +1,55 @@
+name: Build Renux kernel (zig cc)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kernel-zig:
+    name: GENERIC amd64 (zig cc, experimental)
+    runs-on: macos-latest
+    timeout-minutes: 90
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Homebrew downloads
+        uses: actions/cache@v4
+        with:
+          path: /Users/runner/Library/Caches/Homebrew
+          key: renux-brew-${{ runner.os }}-v1
+          restore-keys: |
+            renux-brew-${{ runner.os }}-
+
+      - name: Install build dependencies (Homebrew)
+        run: |
+          brew update --quiet || true
+          brew install --quiet bmake libarchive llvm lld lua ccache zig || true
+
+      - name: Create build environment
+        run: |
+          BREW_PREFIX="$(brew --prefix)"
+          echo "PATH=${BREW_PREFIX}/opt/llvm/bin:${BREW_PREFIX}/opt/coreutils/libexec/gnubin:${BREW_PREFIX}/bin:${BREW_PREFIX}/sbin:/usr/bin:/bin:/usr/sbin:/sbin" >> "$GITHUB_ENV"
+          echo "ZIG=$PWD/tools/zig/x86_64-freebsd-zig-cc" >> "$GITHUB_ENV"
+          mkdir -p ../build "${PWD%/*}/ccache"
+          echo "MAKEOBJDIRPREFIX=${PWD%/*}/build" >> "$GITHUB_ENV"
+          echo "NPROC=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 2)" >> "$GITHUB_ENV"
+          echo "CC=clang"      >> "$GITHUB_ENV"
+          echo "CXX=clang++"   >> "$GITHUB_ENV"
+          echo "CPP=clang-cpp" >> "$GITHUB_ENV"
+
+      - name: Build the GENERIC kernel with zig cc
+        run: |
+          set -o pipefail
+          chmod +x "$ZIG"
+          ./renux -j "$NPROC" --no-deps -K kernel=GENERIC -- \
+            XCC="$ZIG"
+
+      - name: Verify the kernel is x86-64
+        if: success()
+        run: |
+          K=$(find ../build -path '*kernel*' -name kernel -type f | head -1)
+          test -n "$K" && file "$K" && file "$K" | grep -q x86-64
