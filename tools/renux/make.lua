@@ -247,9 +247,10 @@ local function build_make_cmd(ops)
         envstr = envstr .. kv[1] .. "=" .. q(kv[2]) .. " "
     end
 
-    local parts = { envstr .. q(bmake) }
+local parts = { envstr .. q(bmake) }
     if not cfg.verbose then parts[#parts + 1] = "-s" end
     if cfg.parallel then parts[#parts + 1] = cfg.parallel end
+    parts[#parts + 1] = "-Wno-error"
     parts[#parts + 1] = "-Wno-default-const-init-field-unsafe"
     parts[#parts + 1] = "-DWITH_AUTO_OBJ"
     if args.clean == false or args.clean == nil then
