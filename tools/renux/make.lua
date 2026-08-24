@@ -270,18 +270,18 @@ local parts = { envstr .. q(bmake) }
                 cmd = cmd .. " KERNCONF=" .. cfg.kernconf .. " WERROR= kernel-toolchain buildkernel"
             else
                 did, have_kernel = true, true
-                cmd = cmd .. " buildworld buildkernel"
+                cmd = cmd .. " WERROR= buildworld buildkernel"
             end
         elseif op == "world" or op == "distribution" then
             if cfg.kernel_only then
                 did, have_kernel = true, true
                 cmd = cmd .. " KERNCONF=" .. cfg.kernconf .. " WERROR= kernel-toolchain buildkernel"
             else
-                did = true; cmd = cmd .. " buildworld"
+                did = true; cmd = cmd .. " WERROR= buildworld"
             end
         elseif op == "release" then
             did = true
-            if not cfg.kernel_only then cmd = cmd .. " buildworld buildkernel" end
+            if not cfg.kernel_only then cmd = cmd .. " WERROR= buildworld buildkernel" end
         elseif op == "tools" then
             did = true; cmd = cmd .. " toolchain"
         elseif op == "kernels" then
